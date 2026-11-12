@@ -61,6 +61,18 @@ final class TransactionStore: ObservableObject {
         saveTransactions()
     }
 
+    func update(_ transaction: Transaction) {
+        guard let index = transactions.firstIndex(where: { $0.id == transaction.id }) else { return }
+        transactions[index] = transaction
+        transactions.sort { $0.date > $1.date }
+        saveTransactions()
+    }
+
+    func delete(_ transaction: Transaction) {
+        transactions.removeAll { $0.id == transaction.id }
+        saveTransactions()
+    }
+
     func delete(at offsets: IndexSet, from displayedTransactions: [Transaction]) {
         let ids = offsets.map { displayedTransactions[$0].id }
         transactions.removeAll { ids.contains($0.id) }

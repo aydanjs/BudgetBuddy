@@ -6,7 +6,13 @@ struct TransactionListView: View {
 
     var body: some View {
         List {
-            ForEach(store.transactions) { transaction in TransactionRow(transaction: transaction) }
+            ForEach(store.transactions) { transaction in
+                NavigationLink {
+                    AddTransactionView(transaction: transaction)
+                } label: {
+                    TransactionRow(transaction: transaction)
+                }
+            }
                 .onDelete { store.delete(at: $0, from: store.transactions) }
         }
         .overlay { if store.transactions.isEmpty { ContentUnavailableView("No transactions yet", systemImage: "tray", description: Text("Tap + to add your first one.")) } }

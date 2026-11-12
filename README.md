@@ -6,6 +6,7 @@ BudgetBuddy is a beginner-friendly, native iPhone budgeting app built with Swift
 
 - A dashboard with actual income, spending, unallocated cash, planned spending, planned savings, and savings rate
 - A monthly budget screen with planned-versus-actual progress for every category
+- Tap any past transaction to edit it or delete it completely
 - Categories grouped as Needs, Wants, Giving, and Savings
 - Income settings for hourly rate, monthly hours, estimated taxes, tithing, and a savings goal rate
 - Local storage for both transactions and budget settings
@@ -25,7 +26,7 @@ You do **not** need a paid Apple Developer account to run this app in the iPhone
 3. Click the triangular **Run** button, or press **Command-R**.
 4. The simulator will open and launch BudgetBuddy.
 
-The first launch includes sample transactions and budgets so the screens are not empty. Start on the **Settings** tab to enter an hourly rate, expected monthly hours, estimated tax rate, and tithing rate. Then use **Budget** to set category amounts. Add transactions with the **+** button and swipe left on a transaction to delete it.
+The first launch includes sample transactions and budgets so the screens are not empty. Start on the **Settings** tab to enter an hourly rate, expected monthly hours, estimated tax rate, and tithing rate. Then use **Budget** to set category amounts. Add transactions with the **+** button. Tap a transaction to edit or delete it, or swipe left for quick deletion.
 
 ## How the project is organized
 

@@ -3,11 +3,21 @@ import SwiftUI
 struct AddTransactionView: View {
     @EnvironmentObject private var store: TransactionStore
     @Environment(\.dismiss) private var dismiss
-    @State private var amount = ""
-    @State private var category: TransactionCategory = .groceries
-    @State private var date = Date()
-    @State private var notes = ""
-    @State private var isIncome = false
+    private let transaction: Transaction?
+    @State private var amount: String
+    @State private var category: TransactionCategory
+    @State private var date: Date
+    @State private var notes: String
+    @State private var isIncome: Bool
+
+    init(transaction: Transaction? = nil) {
+        self.transaction = transaction
+        _amount = State(initialValue: transaction.map { NSDecimalNumber(decimal: $0.amount).stringValue } ?? "")
+        _category = State(initialValue: transaction?.category ?? .groceries)
+        _date = State(initialValue: transaction?.date ?? Date())
+        _notes = State(initialValue: transaction?.notes ?? "")
+        _isIncome = State(initialValue: transaction?.isIncome ?? false)
+    }
 
     private var parsedAmount: Decimal? { Decimal(string: amount.replacingOccurrences(of: ",", with: "."), locale: Locale(identifier: "en_US_POSIX")) }
 
@@ -32,17 +42,41 @@ struct AddTransactionView: View {
                 DatePicker("Date", selection: $date, displayedComponents: .date)
                 TextField("Notes (optional)", text: $notes, axis: .vertical).lineLimit(2...4)
             }
+
+            if let transaction {
+                Section {
+                    Button("Delete Transaction", role: .destructive) {
+                        store.delete(transaction)
+                        dismiss()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
+            }
         }
-        .navigationTitle("Add Transaction").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(transaction == nil ? "Add Transaction" : "Edit Transaction").navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+            if transaction == nil {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+            }
             ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(parsedAmount == nil || parsedAmount ?? 0 <= 0) }
         }
     }
 
     private func save() {
         guard let parsedAmount, parsedAmount > 0 else { return }
-        store.add(Transaction(amount: parsedAmount, category: category, date: date, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines), isIncome: isIncome))
+        let updated = Transaction(
+            id: transaction?.id ?? UUID(),
+            amount: parsedAmount,
+            category: category,
+            date: date,
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+            isIncome: isIncome
+        )
+        if transaction == nil {
+            store.add(updated)
+        } else {
+            store.update(updated)
+        }
         dismiss()
     }
 }
