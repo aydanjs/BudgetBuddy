@@ -1,6 +1,15 @@
 # BudgetBuddy
 
-BudgetBuddy is a beginner-friendly, native iPhone budgeting app built with SwiftUI. It shows a monthly summary, lists transactions, lets you add income or expenses, and stores everything locally on the phone.
+BudgetBuddy is a beginner-friendly, native iPhone budgeting app built with SwiftUI. Its budgeting flow is based on the Household Budget Forecast workbook: plan monthly income and category budgets, record actual transactions, and compare the plan with real spending.
+
+## Version 2 features
+
+- A dashboard with actual income, spending, unallocated cash, planned spending, planned savings, and savings rate
+- A monthly budget screen with planned-versus-actual progress for every category
+- Categories grouped as Needs, Wants, Giving, and Savings
+- Income settings for hourly rate, monthly hours, estimated taxes, and tithing
+- Local storage for both transactions and budget settings
+- Sample transactions and starting category budgets for first launch
 
 ## What you need
 
@@ -16,18 +25,18 @@ You do **not** need a paid Apple Developer account to run this app in the iPhone
 3. Click the triangular **Run** button, or press **Command-R**.
 4. The simulator will open and launch BudgetBuddy.
 
-The first launch includes sample transactions so the screens are not empty. Add a transaction with the **+** button. Swipe left on a transaction in the full list to delete it.
+The first launch includes sample transactions and budgets so the screens are not empty. Start on the **Settings** tab to enter an hourly rate, expected monthly hours, estimated tax rate, and tithing rate. Then use **Budget** to set category amounts. Add transactions with the **+** button and swipe left on a transaction to delete it.
 
 ## How the project is organized
 
 - `BudgetBuddyApp.swift` starts the app and creates the shared data store.
-- `Models/Transaction.swift` describes a transaction and the available categories.
-- `Stores/TransactionStore.swift` loads and saves transactions as JSON in the app's private Documents folder.
-- `Views/` contains the dashboard, transaction list, and add-transaction screen.
+- `Models/Transaction.swift` describes transactions, budget groups, categories, and settings.
+- `Stores/TransactionStore.swift` performs budget calculations and saves data as JSON in the app's private Documents folder.
+- `Views/` contains the dashboard, monthly budget, transaction, add-transaction, and settings screens.
 
 ## Local storage
 
-No information leaves the device. Transactions are saved in a private `transactions.json` file belonging to the app. Deleting the app from the simulator or phone also deletes its saved data.
+No information leaves the device. Transactions and settings are saved in private JSON files belonging to the app. Deleting the app from the simulator or phone also deletes its saved data.
 
 ## Run from Terminal (optional)
 
