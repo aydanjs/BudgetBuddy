@@ -88,6 +88,7 @@ struct BudgetSettings: Codable {
     var scheduledHours: Decimal = 160
     var taxRate: Decimal = 0.10
     var tithingRate: Decimal = 0.10
+    var savingsRate: Decimal = 0.20
     var startingCash: Decimal = 0
     var firstBudgetMonth: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
     var categoryBudgets: [String: Decimal] = Self.defaultBudgets
@@ -102,4 +103,23 @@ struct BudgetSettings: Codable {
         TransactionCategory.gifts.rawValue: 50,
         TransactionCategory.dates.rawValue: 75
     ]
+
+    private enum CodingKeys: String, CodingKey {
+        case hourlyRate, scheduledHours, taxRate, tithingRate, savingsRate, startingCash, firstBudgetMonth, categoryBudgets
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        hourlyRate = try values.decodeIfPresent(Decimal.self, forKey: .hourlyRate) ?? 20
+        scheduledHours = try values.decodeIfPresent(Decimal.self, forKey: .scheduledHours) ?? 160
+        taxRate = try values.decodeIfPresent(Decimal.self, forKey: .taxRate) ?? 0.10
+        tithingRate = try values.decodeIfPresent(Decimal.self, forKey: .tithingRate) ?? 0.10
+        savingsRate = try values.decodeIfPresent(Decimal.self, forKey: .savingsRate) ?? 0.20
+        startingCash = try values.decodeIfPresent(Decimal.self, forKey: .startingCash) ?? 0
+        firstBudgetMonth = try values.decodeIfPresent(Date.self, forKey: .firstBudgetMonth)
+            ?? Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
+        categoryBudgets = try values.decodeIfPresent([String: Decimal].self, forKey: .categoryBudgets) ?? Self.defaultBudgets
+    }
 }

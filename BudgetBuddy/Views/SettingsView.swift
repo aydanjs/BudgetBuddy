@@ -9,6 +9,7 @@ struct SettingsView: View {
                 DecimalSetting(title: "Hourly rate", value: binding(\.hourlyRate), prefix: "$", suffix: "/hr")
                 DecimalSetting(title: "Hours per month", value: binding(\.scheduledHours))
                 PercentageSetting(title: "Estimated tax rate", decimal: binding(\.taxRate))
+                PercentageSetting(title: "Savings goal rate", decimal: binding(\.savingsRate))
                 LabeledContent("Planned net pay") { Text(store.plannedNetIncome, format: .currency(code: currencyCode)).bold() }
             }
 
@@ -46,7 +47,7 @@ private struct DecimalSetting: View {
             Text(title)
             Spacer()
             Text(prefix).foregroundStyle(.secondary)
-            TextField("0", value: $value, format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 75)
+            EditableDecimalField(value: $value, width: 75)
             Text(suffix).foregroundStyle(.secondary)
         }
     }
@@ -62,8 +63,55 @@ private struct PercentageSetting: View {
         HStack {
             Text(title)
             Spacer()
-            TextField("0", value: percent, format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 65)
+            EditableDecimalField(value: percent, width: 65)
             Text("%").foregroundStyle(.secondary)
         }
+    }
+}
+
+struct EditableDecimalField: View {
+    @Binding var value: Decimal
+    let width: CGFloat
+    @State private var text: String
+    @FocusState private var isFocused: Bool
+
+    init(value: Binding<Decimal>, width: CGFloat) {
+        _value = value
+        self.width = width
+        _text = State(initialValue: Self.displayText(for: value.wrappedValue))
+    }
+
+    var body: some View {
+        TextField("0", text: $text)
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.trailing)
+            .frame(width: width)
+            .focused($isFocused)
+            .onChange(of: text) { _, newValue in
+                if let parsed = Self.parse(newValue) { value = max(0, parsed) }
+            }
+            .onChange(of: isFocused) { _, focused in
+                if !focused {
+                    if let parsed = Self.parse(text) {
+                        value = max(0, parsed)
+                    } else {
+                        value = 0
+                    }
+                    text = Self.displayText(for: value)
+                }
+            }
+            .onChange(of: value) { _, newValue in
+                if !isFocused { text = Self.displayText(for: newValue) }
+            }
+    }
+
+    private static func parse(_ text: String) -> Decimal? {
+        let normalized = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        guard !normalized.isEmpty else { return nil }
+        return Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX"))
+    }
+
+    private static func displayText(for value: Decimal) -> String {
+        NSDecimalNumber(decimal: value).stringValue
     }
 }

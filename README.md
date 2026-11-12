@@ -7,7 +7,7 @@ BudgetBuddy is a beginner-friendly, native iPhone budgeting app built with Swift
 - A dashboard with actual income, spending, unallocated cash, planned spending, planned savings, and savings rate
 - A monthly budget screen with planned-versus-actual progress for every category
 - Categories grouped as Needs, Wants, Giving, and Savings
-- Income settings for hourly rate, monthly hours, estimated taxes, and tithing
+- Income settings for hourly rate, monthly hours, estimated taxes, tithing, and a savings goal rate
 - Local storage for both transactions and budget settings
 - Sample transactions and starting category budgets for first launch
 

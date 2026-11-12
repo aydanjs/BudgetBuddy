@@ -17,6 +17,7 @@ final class TransactionStore: ObservableObject {
 
     var plannedNetIncome: Decimal { settings.hourlyRate * settings.scheduledHours * (1 - settings.taxRate) }
     var plannedTithing: Decimal { plannedNetIncome * settings.tithingRate }
+    var savingsGoal: Decimal { plannedNetIncome * settings.savingsRate }
     var totalPlannedSpending: Decimal { settings.categoryBudgets.values.reduce(0, +) + plannedTithing }
     var plannedSavings: Decimal { plannedNetIncome - totalPlannedSpending }
 

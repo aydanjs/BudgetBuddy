@@ -24,11 +24,16 @@ struct BudgetView: View {
             }
 
             Section("Savings") {
-                LabeledContent("Planned amount") {
+                LabeledContent("Available after budget") {
                     Text(store.plannedSavings, format: .currency(code: currencyCode))
                         .foregroundStyle(store.plannedSavings >= 0 ? .green : .red).bold()
                 }
-                Text("Savings is what remains after planned spending and tithing.")
+                LabeledContent("Savings goal") {
+                    Text(store.savingsGoal, format: .currency(code: currencyCode)).bold()
+                }
+                ProgressView(value: savingsProgress)
+                    .tint(store.plannedSavings >= store.savingsGoal ? .green : .orange)
+                Text("Your savings goal rate is editable in Settings. Available savings is what remains after planned spending and tithing.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -37,6 +42,11 @@ struct BudgetView: View {
 
     private func categories(in group: BudgetGroup) -> [TransactionCategory] {
         TransactionCategory.expenseCategories.filter { $0.group == group }
+    }
+
+    private var savingsProgress: Double {
+        guard store.savingsGoal > 0 else { return 0 }
+        return min(1, max(0, NSDecimalNumber(decimal: store.plannedSavings / store.savingsGoal).doubleValue))
     }
 }
 
@@ -72,8 +82,7 @@ private struct BudgetCategoryRow: View {
                 if category == .tithing {
                     Text(budget, format: .currency(code: currencyCode)).bold()
                 } else {
-                    TextField("$0", value: Binding(get: { budget }, set: { store.setBudget($0, for: category) }), format: .number)
-                        .keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 90)
+                    EditableDecimalField(value: Binding(get: { budget }, set: { store.setBudget($0, for: category) }), width: 90)
                 }
             }
             ProgressView(value: progress).tint(actual > budget && budget > 0 ? .red : .indigo)
