@@ -72,14 +72,16 @@ struct Transaction: Identifiable, Codable {
     var date: Date
     var notes: String
     var isIncome: Bool
+    var externalID: String?
 
-    init(id: UUID = UUID(), amount: Decimal, category: TransactionCategory, date: Date, notes: String, isIncome: Bool) {
+    init(id: UUID = UUID(), amount: Decimal, category: TransactionCategory, date: Date, notes: String, isIncome: Bool, externalID: String? = nil) {
         self.id = id
         self.amount = amount
         self.category = category
         self.date = date
         self.notes = notes
         self.isIncome = isIncome
+        self.externalID = externalID
     }
 }
 

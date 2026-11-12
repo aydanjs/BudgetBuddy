@@ -39,6 +39,28 @@ The first launch includes sample transactions and budgets so the screens are not
 
 No information leaves the device. Transactions and settings are saved in private JSON files belonging to the app. Deleting the app from the simulator or phone also deletes its saved data.
 
+## Plaid Sandbox testing
+
+BudgetBuddy includes an optional Plaid Sandbox connection for importing fake test transactions. It does not enable live bank access.
+
+1. Copy `server/.env.example` to `server/.env`.
+2. Add your Plaid Client ID and **Sandbox** secret to `.env`. Never commit or share this file.
+3. Install Node.js 20.6 or newer.
+4. In Terminal, start the local server:
+
+```bash
+cd server
+npm start
+```
+
+5. Leave that Terminal window open.
+6. Run BudgetBuddy in the iPhone Simulator.
+7. Open **Settings → Plaid Sandbox → Connect Sandbox Bank**.
+8. Select a Plaid test institution such as **First Platypus Bank** and use Plaid's test credentials (`user_good` / `pass_good`). These credentials work only in Sandbox.
+9. Review the imported test transactions, adjust categories, and tap **Import Selected**.
+
+The Plaid secret stays in the local server and is never placed in the iPhone app. Imported transaction IDs are stored locally so the same transaction is not imported twice. The Sandbox access token is held only in server memory, so restarting the server requires reconnecting the test bank.
+
 ## Run from Terminal (optional)
 
 ```bash

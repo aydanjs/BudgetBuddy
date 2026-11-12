@@ -56,9 +56,22 @@ final class TransactionStore: ObservableObject {
     }
 
     func add(_ transaction: Transaction) {
+        if let externalID = transaction.externalID, transactions.contains(where: { $0.externalID == externalID }) { return }
         transactions.append(transaction)
         transactions.sort { $0.date > $1.date }
         saveTransactions()
+    }
+
+    func importTransactions(_ imported: [Transaction]) -> Int {
+        let existingIDs = Set(transactions.compactMap(\.externalID))
+        let newTransactions = imported.filter { item in
+            guard let externalID = item.externalID else { return true }
+            return !existingIDs.contains(externalID)
+        }
+        transactions.append(contentsOf: newTransactions)
+        transactions.sort { $0.date > $1.date }
+        saveTransactions()
+        return newTransactions.count
     }
 
     func update(_ transaction: Transaction) {

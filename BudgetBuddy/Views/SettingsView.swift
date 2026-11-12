@@ -19,6 +19,16 @@ struct SettingsView: View {
                 DatePicker("First budget month", selection: dateBinding, displayedComponents: .date)
             }
 
+            Section("Bank sync") {
+                NavigationLink {
+                    PlaidConnectionView()
+                } label: {
+                    Label("Plaid Sandbox", systemImage: "building.columns.fill")
+                }
+                Text("Connects only to Plaid's test environment. No real bank credentials are used.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section {
                 Text("All information stays on this phone. Budget settings and transactions are saved automatically.")
                     .font(.footnote).foregroundStyle(.secondary)
