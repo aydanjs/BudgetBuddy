@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { readFileSync } from "node:fs";
 import express from "express";
 import { createRemoteJWKSet, decodeProtectedHeader, importJWK, jwtVerify, SignJWT } from "jose";
 import pg from "pg";
@@ -241,4 +242,5 @@ app.use((error, _request, response, _next) => {
   response.status(error.status || 500).json({ error: error.message || "Unexpected server error.", plaid: error.plaid });
 });
 
+await pool.query(readFileSync(new URL("./schema.sql", import.meta.url), "utf8"));
 app.listen(config.port, "0.0.0.0", () => console.log(`BudgetBuddy API listening on port ${config.port} (${config.plaidEnvironment})`));

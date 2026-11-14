@@ -2,6 +2,7 @@ services:
   - type: web
     name: budgetbuddy-api
     runtime: node
+    plan: free
     rootDir: server
     buildCommand: corepack enable && pnpm install --frozen-lockfile
     startCommand: npm start
@@ -34,5 +35,6 @@ services:
 
 databases:
   - name: budgetbuddy-db
+    plan: free
     databaseName: budgetbuddy
     user: budgetbuddy
