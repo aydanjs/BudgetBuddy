@@ -22,11 +22,7 @@ const config = {
   allowDevelopmentLogin: process.env.ALLOW_DEVELOPMENT_LOGIN === "true",
 };
 
-const encryptionKey = Buffer.from(process.env.TOKEN_ENCRYPTION_KEY, "base64");
-if (encryptionKey.length !== 32) {
-  console.error("TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key.");
-  process.exit(1);
-}
+const encryptionKey = crypto.createHash("sha256").update(process.env.TOKEN_ENCRYPTION_KEY).digest();
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false } });
 const appleKeys = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));

@@ -25,13 +25,9 @@ services:
       - key: PLAID_SECRET
         sync: false
       - key: TOKEN_ENCRYPTION_KEY
-        sync: false
+        generateValue: true
       - key: SESSION_SECRET
-        sync: false
-      - key: PLAID_REDIRECT_URI
-        sync: false
-      - key: PLAID_WEBHOOK_URL
-        sync: false
+        generateValue: true
 
 databases:
   - name: budgetbuddy-db
