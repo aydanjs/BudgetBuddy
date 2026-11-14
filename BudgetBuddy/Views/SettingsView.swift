@@ -19,7 +19,17 @@ struct SettingsView: View {
                 DatePicker("First budget month", selection: dateBinding, displayedComponents: .date)
             }
 
+            Section("Forecast assumptions") {
+                PercentageSetting(title: "Savings APY", decimal: binding(\.savingsAPY))
+                PercentageSetting(title: "Low stock return", decimal: binding(\.lowInvestmentReturn))
+                PercentageSetting(title: "Base stock return", decimal: binding(\.baseInvestmentReturn))
+                PercentageSetting(title: "High stock return", decimal: binding(\.highInvestmentReturn))
+                Text("These stock returns are planning assumptions, not guarantees. Savings APY remains the same in every scenario.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section("Bank sync") {
+#if DEBUG
                 NavigationLink {
                     PlaidConnectionView()
                 } label: {
@@ -27,11 +37,20 @@ struct SettingsView: View {
                 }
                 Text("Connects only to Plaid's test environment. No real bank credentials are used.")
                     .font(.caption).foregroundStyle(.secondary)
+#else
+                Label("Bank sync coming soon", systemImage: "building.columns")
+                    .foregroundStyle(.secondary)
+                Text("This TestFlight version uses manual transactions. Real bank connections will be added after production security and privacy testing.")
+                    .font(.caption).foregroundStyle(.secondary)
+#endif
             }
 
-            Section {
-                Text("All information stays on this phone. Budget settings and transactions are saved automatically.")
-                    .font(.footnote).foregroundStyle(.secondary)
+            Section("Privacy & data") {
+                NavigationLink {
+                    PrivacyDataView()
+                } label: {
+                    Label("How your data is handled", systemImage: "hand.raised.fill")
+                }
             }
         }
         .navigationTitle("Settings")
@@ -43,6 +62,27 @@ struct SettingsView: View {
 
     private var dateBinding: Binding<Date> {
         Binding(get: { store.settings.firstBudgetMonth }, set: { value in store.updateSettings { $0.firstBudgetMonth = value } })
+    }
+}
+
+private struct PrivacyDataView: View {
+    var body: some View {
+        List {
+            Section("Stored on this iPhone") {
+                Label("Transactions and categories", systemImage: "list.bullet.rectangle")
+                Label("Budgets and forecast assumptions", systemImage: "chart.bar.fill")
+                Label("Debt and net-worth history", systemImage: "chart.line.uptrend.xyaxis")
+            }
+            Section("Your privacy") {
+                Text("BudgetBuddy stores this information in the app's private storage on this iPhone. This TestFlight version does not create an online BudgetBuddy account or upload your budget to a BudgetBuddy server.")
+                Text("Deleting BudgetBuddy also deletes its locally stored information. Plaid Sandbox is available only in developer Debug builds and uses fake test-bank data.")
+            }
+            Section("Forecast disclaimer") {
+                Text("Savings and investment projections are estimates for planning. Investment returns are not guaranteed, and BudgetBuddy does not provide financial advice.")
+            }
+        }
+        .navigationTitle("Privacy & Data")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

@@ -10,7 +10,7 @@ struct BudgetView: View {
                 DatePicker("Month", selection: $selectedMonth, displayedComponents: [.date])
                     .datePickerStyle(.compact)
                 HStack {
-                    BudgetTotal(title: "Planned", value: store.totalPlannedSpending, color: .indigo)
+                    BudgetTotal(title: "Planned", value: store.totalPlannedSpending, color: .budgetBuddyBlue)
                     BudgetTotal(title: "Actual", value: store.actualSpending(in: selectedMonth), color: .orange)
                 }
             }
@@ -79,13 +79,13 @@ private struct BudgetCategoryRow: View {
             HStack {
                 Label(category.rawValue, systemImage: category.symbol)
                 Spacer()
-                if category == .tithing {
+                if category == .tithing || category == .debtPayment {
                     Text(budget, format: .currency(code: currencyCode)).bold()
                 } else {
                     EditableDecimalField(value: Binding(get: { budget }, set: { store.setBudget($0, for: category) }), width: 90)
                 }
             }
-            ProgressView(value: progress).tint(actual > budget && budget > 0 ? .red : .indigo)
+            ProgressView(value: progress).tint(actual > budget && budget > 0 ? .red : .budgetBuddyBlue)
             HStack {
                 Text("Spent \(actual, format: .currency(code: currencyCode))")
                 Spacer()

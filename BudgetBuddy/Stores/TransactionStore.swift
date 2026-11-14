@@ -4,22 +4,27 @@ import Foundation
 final class TransactionStore: ObservableObject {
     @Published private(set) var transactions: [Transaction] = []
     @Published private(set) var settings = BudgetSettings()
+    @Published private(set) var netWorthSnapshots: [NetWorthSnapshot] = []
 
     private let transactionsURL: URL
     private let settingsURL: URL
+    private let netWorthURL: URL
 
     init(fileManager: FileManager = .default) {
         let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         transactionsURL = documents.appendingPathComponent("transactions.json")
         settingsURL = documents.appendingPathComponent("budget-settings.json")
+        netWorthURL = documents.appendingPathComponent("net-worth-history.json")
         load()
     }
 
     var plannedNetIncome: Decimal { settings.hourlyRate * settings.scheduledHours * (1 - settings.taxRate) }
     var plannedTithing: Decimal { plannedNetIncome * settings.tithingRate }
     var savingsGoal: Decimal { plannedNetIncome * settings.savingsRate }
-    var totalPlannedSpending: Decimal { settings.categoryBudgets.values.reduce(0, +) + plannedTithing }
+    var monthlyDebtPayments: Decimal { settings.debts.reduce(0) { $0 + $1.monthlyPayment } }
+    var totalPlannedSpending: Decimal { settings.categoryBudgets.values.reduce(0, +) + plannedTithing + monthlyDebtPayments }
     var plannedSavings: Decimal { plannedNetIncome - totalPlannedSpending }
+    var currentNetWorth: Decimal { settings.currentSavings + settings.investmentBalance }
 
     func transactions(in month: Date) -> [Transaction] {
         transactions.filter { Calendar.current.isDate($0.date, equalTo: month, toGranularity: .month) }
@@ -40,6 +45,7 @@ final class TransactionStore: ObservableObject {
     func budget(for category: TransactionCategory) -> Decimal {
         if category == .tithing { return plannedTithing }
         if category == .savings { return plannedSavings }
+        if category == .debtPayment { return monthlyDebtPayments }
         return settings.categoryBudgets[category.rawValue] ?? 0
     }
 
@@ -52,7 +58,39 @@ final class TransactionStore: ObservableObject {
     func updateSettings(_ update: (inout BudgetSettings) -> Void) {
         update(&settings)
         saveSettings()
+        recordCurrentNetWorth()
         objectWillChange.send()
+    }
+
+    func saveDebt(_ debt: Debt) {
+        updateSettings { settings in
+            if let index = settings.debts.firstIndex(where: { $0.id == debt.id }) {
+                settings.debts[index] = debt
+            } else {
+                settings.debts.append(debt)
+            }
+        }
+    }
+
+    func deleteDebt(at offsets: IndexSet) {
+        let ids = offsets.map { settings.debts[$0].id }
+        updateSettings { $0.debts.removeAll { ids.contains($0.id) } }
+    }
+
+    func saveNetWorthSnapshot(_ snapshot: NetWorthSnapshot) {
+        if let index = netWorthSnapshots.firstIndex(where: { $0.id == snapshot.id }) {
+            netWorthSnapshots[index] = snapshot
+        } else {
+            netWorthSnapshots.append(snapshot)
+        }
+        netWorthSnapshots.sort { $0.date < $1.date }
+        saveNetWorthSnapshots()
+    }
+
+    func deleteNetWorthSnapshot(at offsets: IndexSet, from snapshots: [NetWorthSnapshot]) {
+        let ids = offsets.map { snapshots[$0].id }
+        netWorthSnapshots.removeAll { ids.contains($0.id) }
+        saveNetWorthSnapshots()
     }
 
     func add(_ transaction: Transaction) {
@@ -106,6 +144,12 @@ final class TransactionStore: ObservableObject {
         } else {
             saveSettings()
         }
+
+        if let data = try? Data(contentsOf: netWorthURL),
+           let decoded = try? JSONDecoder().decode([NetWorthSnapshot].self, from: data) {
+            netWorthSnapshots = decoded.sorted { $0.date < $1.date }
+        }
+        recordCurrentNetWorth()
     }
 
     private func saveTransactions() {
@@ -116,6 +160,28 @@ final class TransactionStore: ObservableObject {
     private func saveSettings() {
         do { try JSONEncoder().encode(settings).write(to: settingsURL, options: .atomic) }
         catch { print("Could not save budget settings: \(error.localizedDescription)") }
+    }
+
+    private func recordCurrentNetWorth() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let snapshot = NetWorthSnapshot(date: today, cash: settings.currentSavings, investments: settings.investmentBalance)
+        if let index = netWorthSnapshots.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: today) }) {
+            netWorthSnapshots[index] = snapshot
+        } else if netWorthSnapshots.count == 1,
+                  let index = netWorthSnapshots.firstIndex(where: { calendar.isDate($0.date, equalTo: today, toGranularity: .month) }) {
+            // Migrate the original monthly-only snapshot to the new daily history format.
+            netWorthSnapshots[index] = snapshot
+        } else {
+            netWorthSnapshots.append(snapshot)
+        }
+        netWorthSnapshots.sort { $0.date < $1.date }
+        saveNetWorthSnapshots()
+    }
+
+    private func saveNetWorthSnapshots() {
+        do { try JSONEncoder().encode(netWorthSnapshots).write(to: netWorthURL, options: .atomic) }
+        catch { print("Could not save net worth history: \(error.localizedDescription)") }
     }
 
     private static var sampleTransactions: [Transaction] {

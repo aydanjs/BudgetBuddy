@@ -5,6 +5,7 @@ struct PlaidConnectionView: View {
     @EnvironmentObject private var store: TransactionStore
     @StateObject private var model = PlaidConnectionModel()
     @State private var importedMessage: String?
+    @State private var isPresentingLink = false
 
     var body: some View {
         List {
@@ -70,27 +71,32 @@ struct PlaidConnectionView: View {
         }
         .navigationTitle("Plaid Sandbox")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isPresentingLink) {
+            model.linkSession?.sheet()
+        }
     }
 
     @MainActor
     private func connect() async {
         do {
             let token = try await model.createLinkToken()
-            var configuration = LinkTokenConfiguration(token: token) { success in
-                Task { await model.exchange(publicToken: success.publicToken) }
-            }
-            configuration.onExit = { exit in
-                if let error = exit.error { model.errorMessage = error.localizedDescription }
-            }
-            switch Plaid.create(configuration) {
-            case .failure(let error): model.errorMessage = error.localizedDescription
-            case .success(let handler):
-                guard let presenter = topViewController() else {
-                    model.errorMessage = "Could not open Plaid Link."
-                    return
-                }
-                handler.open(presentUsing: .viewController(presenter))
-            }
+            let configuration = LinkTokenConfiguration(
+                token: token,
+                onSuccess: { success in
+                    isPresentingLink = false
+                    model.linkSession = nil
+                    Task { await model.exchange(publicToken: success.publicToken) }
+                },
+                onExit: { exit in
+                    isPresentingLink = false
+                    model.linkSession = nil
+                    if let error = exit.error { model.errorMessage = error.localizedDescription }
+                },
+                onEvent: { _ in },
+                onLoad: { }
+            )
+            model.linkSession = try Plaid.createPlaidLinkSession(configuration: configuration)
+            isPresentingLink = true
         } catch {
             model.errorMessage = error.localizedDescription
         }
@@ -115,12 +121,6 @@ struct PlaidConnectionView: View {
         importedMessage = count == 1 ? "Imported 1 transaction." : "Imported \(count) transactions."
     }
 
-    private func topViewController() -> UIViewController? {
-        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first,
-              var controller = scene.windows.first(where: \.isKeyWindow)?.rootViewController else { return nil }
-        while let presented = controller.presentedViewController { controller = presented }
-        return controller
-    }
 }
 
 @MainActor
@@ -129,6 +129,10 @@ final class PlaidConnectionModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var reviewItems: [PlaidReviewItem] = []
+
+    // LinkKit's session owns the presented Plaid flow and must stay alive until
+    // the user finishes or closes it.
+    var linkSession: PlaidLinkSession?
 
     private let baseURL = URL(string: "http://127.0.0.1:8080")!
 
@@ -201,12 +205,37 @@ struct PlaidReviewItem: Identifiable {
 }
 
 private struct EmptyBody: Encodable {}
-private struct PublicTokenBody: Encodable { let publicToken: String }
+private struct PublicTokenBody: Encodable {
+    let publicToken: String
+
+    enum CodingKeys: String, CodingKey {
+        case publicToken = "public_token"
+    }
+}
 private struct LinkTokenResponse: Decodable { let linkToken: String }
 private struct ExchangeResponse: Decodable { let connected: Bool }
 private struct ServerError: Decodable { let error: String }
-private struct SyncResponse: Decodable { let added: [PlaidTransaction] }
-struct PlaidPersonalFinanceCategory: Decodable { let primary: String }
+private struct SyncResponse: Decodable {
+    let added: [PlaidTransaction]
+
+    enum CodingKeys: String, CodingKey { case added }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        added = try container.decodeIfPresent([PlaidTransaction].self, forKey: .added) ?? []
+    }
+}
+
+struct PlaidPersonalFinanceCategory: Decodable {
+    let primary: String
+
+    enum CodingKeys: String, CodingKey { case primary }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        primary = try container.decodeIfPresent(String.self, forKey: .primary) ?? "OTHER"
+    }
+}
 
 struct PlaidTransaction: Decodable {
     let transactionID: String
@@ -216,6 +245,28 @@ struct PlaidTransaction: Decodable {
     let pending: Bool
     let isoCurrencyCode: String?
     let personalFinanceCategory: PlaidPersonalFinanceCategory?
+
+    enum CodingKeys: String, CodingKey {
+        case transactionID, name, amount, date, pending
+        case isoCurrencyCode, personalFinanceCategory
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        transactionID = try container.decodeIfPresent(String.self, forKey: .transactionID) ?? UUID().uuidString
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Transaction"
+        amount = try container.decodeIfPresent(Double.self, forKey: .amount) ?? 0
+        date = try container.decodeIfPresent(String.self, forKey: .date) ?? Self.today
+        pending = try container.decodeIfPresent(Bool.self, forKey: .pending) ?? false
+        isoCurrencyCode = try container.decodeIfPresent(String.self, forKey: .isoCurrencyCode)
+        personalFinanceCategory = try container.decodeIfPresent(PlaidPersonalFinanceCategory.self, forKey: .personalFinanceCategory)
+    }
+
+    private static var today: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
 }
 
 private struct PlaidLocalError: LocalizedError {

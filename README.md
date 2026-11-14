@@ -1,67 +1,87 @@
 # BudgetBuddy
 
-BudgetBuddy is a beginner-friendly, native iPhone budgeting app built with SwiftUI. Its budgeting flow is based on the Household Budget Forecast workbook: plan monthly income and category budgets, record actual transactions, and compare the plan with real spending.
+BudgetBuddy is a beginner-friendly native iPhone budgeting app built with SwiftUI. It combines monthly budgeting, actual spending, long-term forecasts, purchase planning, debt payoff estimates, and net-worth tracking.
 
-## Version 2 features
+## Current features
 
-- A dashboard with actual income, spending, unallocated cash, planned spending, planned savings, and savings rate
-- A monthly budget screen with planned-versus-actual progress for every category
-- Tap any past transaction to edit it or delete it completely
-- Categories grouped as Needs, Wants, Giving, and Savings
-- Income settings for hourly rate, monthly hours, estimated taxes, tithing, and a savings goal rate
-- Local storage for both transactions and budget settings
-- Sample transactions and starting category budgets for first launch
+- Dashboard with monthly actuals, expected comparisons, category progress, and net-worth history
+- Monthly budget with planned-versus-actual category progress
+- Add, edit, filter, and delete transactions
+- Savings and stock forecasts for 1-year and 5-year scenarios
+- Big-purchase planning and debt-payoff estimates
+- Local storage for transactions, settings, debts, and net-worth history
+- Optional Plaid Sandbox testing in developer Debug builds
 
 ## What you need
 
 - A Mac
-- Xcode 16 or newer (download it free from the Mac App Store)
+- Xcode 16 or newer
+- An active Apple Developer Program membership for TestFlight or App Store distribution
 
-You do **not** need a paid Apple Developer account to run this app in the iPhone Simulator.
+A paid membership is not needed to run BudgetBuddy in the iPhone Simulator.
 
 ## Open and run the app
 
 1. Open `BudgetBuddy.xcodeproj` in Xcode.
-2. At the top of Xcode, choose an iPhone Simulator, such as **iPhone 16**.
-3. Click the triangular **Run** button, or press **Command-R**.
+2. Choose an iPhone Simulator at the top of Xcode.
+3. Click the triangular **Run** button or press **Command-R**.
 4. The simulator will open and launch BudgetBuddy.
 
-The first launch includes sample transactions and budgets so the screens are not empty. Start on the **Settings** tab to enter an hourly rate, expected monthly hours, estimated tax rate, and tithing rate. Then use **Budget** to set category amounts. Add transactions with the **+** button. Tap a transaction to edit or delete it, or swipe left for quick deletion.
+The first launch includes sample transactions and budgets. Open **Plan → Settings** to enter income and forecast assumptions, use **Budget** to adjust category amounts, and use the **+** button to add a transaction.
 
-## How the project is organized
+## Project organization
 
 - `BudgetBuddyApp.swift` starts the app and creates the shared data store.
-- `Models/Transaction.swift` describes transactions, budget groups, categories, and settings.
-- `Stores/TransactionStore.swift` performs budget calculations and saves data as JSON in the app's private Documents folder.
-- `Views/` contains the dashboard, monthly budget, transaction, add-transaction, and settings screens.
+- `Models/Transaction.swift` contains the financial models and settings.
+- `Stores/TransactionStore.swift` calculates totals and saves local JSON data.
+- `Views/` contains the dashboard, budget, transactions, forecasts, debt planner, settings, and Plaid Sandbox interface.
 
-## Local storage
+## Privacy and local storage
 
-No information leaves the device. Transactions and settings are saved in private JSON files belonging to the app. Deleting the app from the simulator or phone also deletes its saved data.
+The Release/TestFlight version stores transactions, settings, debts, and net-worth history in the app's private storage. It does not create an online BudgetBuddy account or upload the budget to a BudgetBuddy server. Deleting the app also deletes its saved local data.
 
 ## Plaid Sandbox testing
 
-BudgetBuddy includes an optional Plaid Sandbox connection for importing fake test transactions. It does not enable live bank access.
+Debug builds include an optional Plaid Sandbox connection for importing fake test transactions. Plaid Sandbox is hidden in Release and TestFlight builds and does not enable live bank access.
 
 1. Copy `server/.env.example` to `server/.env`.
-2. Add your Plaid Client ID and **Sandbox** secret to `.env`. Never commit or share this file.
+2. Add the Plaid Client ID and Sandbox secret. Never commit or share this file.
 3. Install Node.js 20.6 or newer.
-4. In Terminal, start the local server:
+4. Start the local server:
 
 ```bash
 cd server
 npm start
 ```
 
-5. Leave that Terminal window open.
-6. Run BudgetBuddy in the iPhone Simulator.
-7. Open **Settings → Plaid Sandbox → Connect Sandbox Bank**.
-8. Select a Plaid test institution such as **First Platypus Bank** and use Plaid's test credentials (`user_good` / `pass_good`). These credentials work only in Sandbox.
-9. Review the imported test transactions, adjust categories, and tap **Import Selected**.
+5. Run BudgetBuddy in the iPhone Simulator.
+6. Open **Plan → Settings → Plaid Sandbox**.
+7. Connect a Plaid test institution and import the desired fake transactions.
 
-The Plaid secret stays in the local server and is never placed in the iPhone app. Imported transaction IDs are stored locally so the same transaction is not imported twice. The Sandbox access token is held only in server memory, so restarting the server requires reconnecting the test bank.
+The Plaid secret remains in the local server and is never placed in the iPhone app.
 
-## Run from Terminal (optional)
+## Prepare a TestFlight build
+
+BudgetBuddy currently uses:
+
+- Bundle identifier: `com.aydanjs.BudgetBuddy`
+- Version: `1.0`
+- Build: `1`
+
+To create an archive:
+
+1. Open `BudgetBuddy.xcodeproj` in Xcode.
+2. Select the **BudgetBuddy** project and then the **BudgetBuddy** target.
+3. Open **Signing & Capabilities**.
+4. Enable **Automatically manage signing** and select your Apple Developer team.
+5. Choose **Any iOS Device (arm64)** as the run destination.
+6. Select **Product → Archive**.
+7. When Organizer opens, validate the archive.
+8. Only when ready, select **Distribute App → App Store Connect → Upload**.
+
+Uploading requires a matching app record in App Store Connect and completed privacy information. Creating that record and uploading are intentionally separate from the local project preparation.
+
+## Terminal build (optional)
 
 ```bash
 xcodebuild -project BudgetBuddy.xcodeproj -scheme BudgetBuddy -sdk iphonesimulator -configuration Debug build CODE_SIGNING_ALLOWED=NO
