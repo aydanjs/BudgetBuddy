@@ -10,7 +10,7 @@ BudgetBuddy is a beginner-friendly native iPhone budgeting app built with SwiftU
 - Savings and stock forecasts for 1-year and 5-year scenarios
 - Big-purchase planning and debt-payoff estimates
 - Local storage for transactions, settings, debts, and net-worth history
-- Optional Plaid Sandbox testing in developer Debug builds
+- Secure Plaid bank connections (hosted setup required)
 
 ## What you need
 
@@ -36,35 +36,38 @@ The first launch includes sample transactions and budgets. Open **Plan → Setti
 - `Stores/TransactionStore.swift` calculates totals and saves local JSON data.
 - `Views/` contains the dashboard, budget, transactions, forecasts, debt planner, settings, and Plaid Sandbox interface.
 
-## Privacy and local storage
+## Privacy and storage
 
-The Release/TestFlight version stores transactions, settings, debts, and net-worth history in the app's private storage. It does not create an online BudgetBuddy account or upload the budget to a BudgetBuddy server. Deleting the app also deletes its saved local data.
+Budgets, forecasts, and manually entered transactions are stored in the app's private storage. When bank sync is enabled, the hosted API stores an encrypted Plaid access token and synced transaction records for the signed-in user. Bank credentials are entered only in Plaid Link and are never provided to BudgetBuddy.
 
-## Plaid Sandbox testing
+## Plaid hosted setup
 
-Debug builds include an optional Plaid Sandbox connection for importing fake test transactions. Plaid Sandbox is hidden in Release and TestFlight builds and does not enable live bank access.
+The `server/` folder contains the multi-user API used by the iPhone app. It verifies Sign in with Apple, encrypts Plaid access tokens with AES-256-GCM, persists Plaid Items and transactions in PostgreSQL, handles transaction webhooks, and supports disconnecting banks and deleting an account.
+
+Before requesting Plaid Production access, deploy and test this server using Plaid Sandbox:
 
 1. Copy `server/.env.example` to `server/.env`.
-2. Add the Plaid Client ID and Sandbox secret. Never commit or share this file.
-3. Install Node.js 20.6 or newer.
-4. Start the local server:
+2. Add the Sandbox credentials and local PostgreSQL connection. Generate separate strong values for `TOKEN_ENCRYPTION_KEY` and `SESSION_SECRET`. Never commit or share this file.
+3. Run `server/schema.sql` against the PostgreSQL database.
+4. Install Node.js 20.6 or newer and install dependencies with `pnpm install`.
+5. Start the server:
 
 ```bash
 cd server
 npm start
 ```
 
-5. Run BudgetBuddy in the iPhone Simulator.
-6. Open **Plan → Settings → Plaid Sandbox**.
-7. Connect a Plaid test institution and import the desired fake transactions.
+6. Run BudgetBuddy in the iPhone Simulator.
+7. Open **Plan → Settings → Connect bank accounts** and use **Developer Sign In**.
+8. Connect a Plaid test institution and import the desired fake transactions.
 
-The Plaid secret remains in the local server and is never placed in the iPhone app.
+For a hosted deployment, `render.yaml` describes the API and PostgreSQL database. Configure the API URL in the app, add an HTTPS Plaid redirect URI and webhook URL, and keep the Plaid secret only in the host's private environment settings.
 
 ## Prepare a TestFlight build
 
 BudgetBuddy currently uses:
 
-- Bundle identifier: `com.aydanjs.BudgetBuddy`
+- Bundle identifier: `com.aydanjs.BudgetBuddyFinance`
 - Version: `1.0`
 - Build: `1`
 

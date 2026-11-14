@@ -29,20 +29,13 @@ struct SettingsView: View {
             }
 
             Section("Bank sync") {
-#if DEBUG
                 NavigationLink {
                     PlaidConnectionView()
                 } label: {
-                    Label("Plaid Sandbox", systemImage: "building.columns.fill")
+                    Label("Connect bank accounts", systemImage: "building.columns.fill")
                 }
-                Text("Connects only to Plaid's test environment. No real bank credentials are used.")
+                Text("Securely connect accounts through Plaid and choose which transactions to import.")
                     .font(.caption).foregroundStyle(.secondary)
-#else
-                Label("Bank sync coming soon", systemImage: "building.columns")
-                    .foregroundStyle(.secondary)
-                Text("This TestFlight version uses manual transactions. Real bank connections will be added after production security and privacy testing.")
-                    .font(.caption).foregroundStyle(.secondary)
-#endif
             }
 
             Section("Privacy & data") {
@@ -74,8 +67,8 @@ private struct PrivacyDataView: View {
                 Label("Debt and net-worth history", systemImage: "chart.line.uptrend.xyaxis")
             }
             Section("Your privacy") {
-                Text("BudgetBuddy stores this information in the app's private storage on this iPhone. This TestFlight version does not create an online BudgetBuddy account or upload your budget to a BudgetBuddy server.")
-                Text("Deleting BudgetBuddy also deletes its locally stored information. Plaid Sandbox is available only in developer Debug builds and uses fake test-bank data.")
+                Text("Budget and forecast data remains in the app's private storage. If you enable bank sync, BudgetBuddy's secure server stores your account connection and imported transaction data so Plaid updates can be delivered.")
+                Text("BudgetBuddy never receives your bank username or password. You can disconnect a bank or delete your online account and bank-sync data from the app.")
             }
             Section("Forecast disclaimer") {
                 Text("Savings and investment projections are estimates for planning. Investment returns are not guaranteed, and BudgetBuddy does not provide financial advice.")

@@ -1,21 +1,44 @@
 import SwiftUI
 import LinkKit
+import AuthenticationServices
+import Security
 
 struct PlaidConnectionView: View {
     @EnvironmentObject private var store: TransactionStore
     @StateObject private var model = PlaidConnectionModel()
+    @StateObject private var auth = BudgetBuddyAuthSession()
     @State private var importedMessage: String?
     @State private var isPresentingLink = false
 
     var body: some View {
         List {
+            Section("BudgetBuddy account") {
+                if auth.isSignedIn {
+                    Label("Signed in securely", systemImage: "checkmark.shield.fill")
+                        .foregroundStyle(.green)
+                    Button("Sign Out", role: .destructive) { auth.signOut() }
+                } else {
+                    SignInWithAppleButton(.signIn) { request in
+                        request.requestedScopes = [.email]
+                    } onCompletion: { result in
+                        Task { await auth.completeAppleSignIn(result) }
+                    }
+                    .signInWithAppleButtonStyle(.black)
+                    .frame(height: 48)
+#if DEBUG
+                    Button("Developer Sign In") { Task { await auth.developmentSignIn() } }
+#endif
+                }
+                if let message = auth.errorMessage { Text(message).foregroundStyle(.red).font(.footnote) }
+            }
+
             Section {
                 Button {
                     Task { await connect() }
                 } label: {
-                    Label(model.isConnected ? "Reconnect Sandbox Bank" : "Connect Sandbox Bank", systemImage: "link")
+                    Label(model.isConnected ? "Connect Another Bank" : "Connect a Bank", systemImage: "link")
                 }
-                .disabled(model.isLoading)
+                .disabled(model.isLoading || !auth.isSignedIn)
 
                 if model.isConnected {
                     Button {
@@ -26,13 +49,13 @@ struct PlaidConnectionView: View {
                     .disabled(model.isLoading)
                 }
 
-                if model.isLoading { ProgressView("Contacting Plaid Sandbox…") }
+                if model.isLoading { ProgressView("Contacting Plaid…") }
                 if let message = model.errorMessage { Text(message).foregroundStyle(.red).font(.footnote) }
                 if let importedMessage { Text(importedMessage).foregroundStyle(.green).font(.footnote) }
             } header: {
-                Text("Sandbox connection")
+                Text("Bank connection")
             } footer: {
-                Text("Use Plaid's test institution and test credentials only. The local server must be running on this Mac.")
+                Text("Plaid handles bank sign-in. BudgetBuddy never sees or stores your bank password.")
             }
 
             if !model.reviewItems.isEmpty {
@@ -69,11 +92,13 @@ struct PlaidConnectionView: View {
                 }
             }
         }
-        .navigationTitle("Plaid Sandbox")
+        .navigationTitle("Bank Sync")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isPresentingLink) {
             model.linkSession?.sheet()
         }
+        .onChange(of: auth.sessionToken) { _, token in model.sessionToken = token }
+        .task { model.sessionToken = auth.sessionToken }
     }
 
     @MainActor
@@ -134,7 +159,8 @@ final class PlaidConnectionModel: ObservableObject {
     // the user finishes or closes it.
     var linkSession: PlaidLinkSession?
 
-    private let baseURL = URL(string: "http://127.0.0.1:8080")!
+    var sessionToken: String?
+    private let baseURL = BudgetBuddyAPI.baseURL
 
     func createLinkToken() async throws -> String {
         isLoading = true
@@ -175,6 +201,7 @@ final class PlaidConnectionModel: ObservableObject {
         var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let sessionToken { request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization") }
         request.httpBody = try JSONEncoder().encode(body)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
@@ -194,6 +221,105 @@ final class PlaidConnectionModel: ObservableObject {
         case "EDUCATION": .college
         default: .other
         }
+    }
+}
+
+private enum BudgetBuddyAPI {
+    static var baseURL: URL {
+        if let value = Bundle.main.object(forInfoDictionaryKey: "BUDGETBUDDY_API_URL") as? String,
+           let url = URL(string: value), !value.contains("YOUR_") { return url }
+#if DEBUG
+        return URL(string: "http://127.0.0.1:8080")!
+#else
+        return URL(string: "https://YOUR_API_DOMAIN")!
+#endif
+    }
+}
+
+@MainActor
+private final class BudgetBuddyAuthSession: ObservableObject {
+    @Published private(set) var sessionToken: String? = KeychainSession.load()
+    @Published var errorMessage: String?
+    var isSignedIn: Bool { sessionToken != nil }
+
+    func completeAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
+        do {
+            let authorization = try result.get()
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let data = credential.identityToken,
+                  let identityToken = String(data: data, encoding: .utf8) else {
+                throw PlaidLocalError(message: "Apple did not return a valid identity token.")
+            }
+            try await authenticate(path: "/api/auth/apple", body: ["identity_token": identityToken])
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+#if DEBUG
+    func developmentSignIn() async {
+        do { try await authenticate(path: "/api/auth/development", body: [:]) }
+        catch { errorMessage = error.localizedDescription }
+    }
+#endif
+
+    func signOut() {
+        KeychainSession.delete()
+        sessionToken = nil
+    }
+
+    private func authenticate(path: String, body: [String: String]) async throws {
+        var request = URLRequest(url: BudgetBuddyAPI.baseURL.appendingPathComponent(path))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
+            let message = (try? JSONDecoder().decode(ServerError.self, from: data).error) ?? "BudgetBuddy sign-in failed."
+            throw PlaidLocalError(message: message)
+        }
+        let token = try JSONDecoder.plaid.decode(SessionResponse.self, from: data).sessionToken
+        try KeychainSession.save(token)
+        sessionToken = token
+        errorMessage = nil
+    }
+}
+
+private struct SessionResponse: Decodable { let sessionToken: String }
+
+private enum KeychainSession {
+    private static let service = "com.aydanjs.BudgetBuddyFinance"
+    private static let account = "api-session"
+
+    static func save(_ token: String) throws {
+        delete()
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: Data(token.utf8),
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+        ]
+        guard SecItemAdd(query as CFDictionary, nil) == errSecSuccess else {
+            throw PlaidLocalError(message: "Could not securely save your sign-in.")
+        }
+    }
+
+    static func load() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func delete() {
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+        SecItemDelete(query as CFDictionary)
     }
 }
 

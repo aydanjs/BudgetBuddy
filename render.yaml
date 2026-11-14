@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: budgetbuddy-api
+    runtime: node
+    rootDir: server
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        fromDatabase:
+          name: budgetbuddy-db
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: PLAID_ENV
+        value: sandbox
+      - key: APP_BUNDLE_ID
+        value: com.aydanjs.BudgetBuddyFinance
+      - key: PLAID_CLIENT_ID
+        sync: false
+      - key: PLAID_SECRET
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: PLAID_REDIRECT_URI
+        sync: false
+      - key: PLAID_WEBHOOK_URL
+        sync: false
+
+databases:
+  - name: budgetbuddy-db
+    databaseName: budgetbuddy
+    user: budgetbuddy
