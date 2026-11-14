@@ -228,11 +228,7 @@ private enum BudgetBuddyAPI {
     static var baseURL: URL {
         if let value = Bundle.main.object(forInfoDictionaryKey: "BUDGETBUDDY_API_URL") as? String,
            let url = URL(string: value), !value.contains("YOUR_") { return url }
-#if DEBUG
-        return URL(string: "http://127.0.0.1:8080")!
-#else
-        return URL(string: "https://YOUR_API_DOMAIN")!
-#endif
+        return URL(string: "https://budgetbuddy-api-vwtp.onrender.com")!
     }
 }
 

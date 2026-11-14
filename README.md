@@ -57,7 +57,7 @@ cd server
 npm start
 ```
 
-6. Run BudgetBuddy in the iPhone Simulator.
+6. The app currently uses `https://budgetbuddy-api-vwtp.onrender.com`. Run BudgetBuddy in the iPhone Simulator.
 7. Open **Plan → Settings → Connect bank accounts** and use **Developer Sign In**.
 8. Connect a Plaid test institution and import the desired fake transactions.
 
