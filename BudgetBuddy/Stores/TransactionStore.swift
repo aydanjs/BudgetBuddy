@@ -101,6 +101,17 @@ final class TransactionStore: ObservableObject {
         }
         netWorthSnapshots.sort { $0.date < $1.date }
         saveNetWorthSnapshots()
+
+        // A snapshot for today is also the person's current balance. Keep the
+        // dashboard card in sync while allowing older snapshots to remain
+        // historical graph entries only.
+        if Calendar.current.isDate(snapshot.date, inSameDayAs: Date()) {
+            var updatedSettings = settings
+            updatedSettings.currentSavings = max(0, snapshot.cash)
+            updatedSettings.investmentBalance = max(0, snapshot.investments)
+            settings = updatedSettings
+            saveSettings()
+        }
     }
 
     func deleteNetWorthSnapshot(at offsets: IndexSet, from snapshots: [NetWorthSnapshot]) {
