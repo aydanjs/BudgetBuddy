@@ -80,14 +80,25 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Bank sync") {
-                NavigationLink {
-                    ConnectedAccountsView()
-                } label: {
-                    Label("Connected accounts", systemImage: "building.columns.fill")
+            if AppFeatures.bankSyncEnabled {
+                Section("Bank sync") {
+                    NavigationLink {
+                        ConnectedAccountsView()
+                    } label: {
+                        Label("Connected accounts", systemImage: "building.columns.fill")
+                    }
+                    Text("Connect, sync, reconnect, or safely remove bank connections through Plaid.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                Text("Connect, sync, reconnect, or safely remove bank connections through Plaid.")
-                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section("Public beta") {
+                Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSf1003lw2cXbwa1jdCerwtG3YuCPA9jVlgZsUJ8uBD8hGEmvA/viewform")!) {
+                    Label("Share Feedback", systemImage: "text.bubble.fill")
+                }
+                Text("Tell us what is useful, what feels confusing, and whether optional bank connections would be worth adding later.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Privacy & data") {
@@ -117,7 +128,7 @@ struct SettingsView: View {
                 } label: {
                     Label("Clear All Transactions", systemImage: "trash")
                 }
-                Text("Removes transactions saved on this iPhone but keeps your budget plan, net-worth history, Apple login, and connected banks.")
+                Text("Removes transactions saved on this iPhone but keeps your budget plan, net-worth history, and Apple login.")
                     .font(.caption).foregroundStyle(.secondary)
 
                 Button(role: .destructive) {
@@ -125,7 +136,7 @@ struct SettingsView: View {
                 } label: {
                     Label("Start Over With Guided Setup", systemImage: "arrow.counterclockwise")
                 }
-                Text("Clears local budget data, then takes you back through the guided setup. Your Apple login and connected banks stay in place.")
+                Text("Clears local budget data, then takes you back through the guided setup. Your Apple login stays in place.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -137,7 +148,7 @@ struct SettingsView: View {
                 auth.restartOnboarding()
             }
         } message: {
-            Text("This cannot be undone. Your local numbers and transactions will return to zero, then BudgetBuddy will guide you through setup again. Your Apple login and bank connection will stay in place.")
+            Text("This cannot be undone. Your local numbers and transactions will return to zero, then Turtle Budgeting will guide you through setup again. Your Apple login will stay in place.")
         }
         .alert("Clear all transactions?", isPresented: $showingClearTransactionsConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -145,7 +156,7 @@ struct SettingsView: View {
                 store.clearAllTransactions()
             }
         } message: {
-            Text("This removes every transaction saved on this iPhone. Your budget plan, net-worth history, Apple login, and connected banks will stay in place. You can sync your bank again later to review and import transactions.")
+            Text("This removes every transaction saved on this iPhone. Your budget plan, net-worth history, and Apple login will stay in place.")
         }
     }
 
@@ -328,30 +339,32 @@ private struct PrivacyDataView: View {
                 Label("Debt and net-worth history", systemImage: "chart.line.uptrend.xyaxis")
             }
             Section("Your privacy") {
-                Text("Budget and forecast data remains in the app's private storage. If you enable bank sync, Turtle Budgeting’s secure server stores your account connection and imported transaction data so Plaid updates can be delivered.")
-                Text("Turtle Budgeting never receives your bank username or password. You can disconnect a bank or delete your online account and bank-sync data from the app.")
+                Text("In this public beta, your budgets, forecasts, balances, categories, and transactions stay in the app's private storage on this iPhone.")
+                Text("Automatic bank connections are not available in this beta, and Turtle Budgeting does not send your manually entered financial data to a server.")
                 Link("Read the Privacy Notice", destination: URL(string: "https://github.com/aydanjs/BudgetBuddy/blob/main/PRIVACY_POLICY.md")!)
                 Link("Contact Turtle Budgeting Privacy", destination: URL(string: "mailto:turtlebudgeting@gmail.com")!)
             }
-            Section("Online bank-sync data") {
-                Text("Deleting your online account removes your server-side Turtle Budgeting account, connected Plaid banks, encrypted connection tokens, recorded consent, and imported bank transactions. Your local budget on this iPhone stays here unless you use Start Over separately.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Button(role: .destructive) {
-                    showingOnlineDeletionConfirmation = true
-                } label: {
-                    Label("Delete Online Account & Bank Data", systemImage: "trash.fill")
-                }
-                .disabled(auth.serverSessionToken == nil || auth.isDeletingOnlineAccount)
-                if auth.isDeletingOnlineAccount {
-                    ProgressView("Deleting online account…")
-                }
-                if let message = auth.serverAuthenticationMessage {
-                    Text(message).font(.footnote).foregroundStyle(.red)
+            if AppFeatures.bankSyncEnabled {
+                Section("Online bank-sync data") {
+                    Text("Deleting your online account removes your server-side Turtle Budgeting account, connected Plaid banks, encrypted connection tokens, recorded consent, and imported bank transactions. Your local budget on this iPhone stays here unless you use Start Over separately.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Button(role: .destructive) {
+                        showingOnlineDeletionConfirmation = true
+                    } label: {
+                        Label("Delete Online Account & Bank Data", systemImage: "trash.fill")
+                    }
+                    .disabled(auth.serverSessionToken == nil || auth.isDeletingOnlineAccount)
+                    if auth.isDeletingOnlineAccount {
+                        ProgressView("Deleting online account…")
+                    }
+                    if let message = auth.serverAuthenticationMessage {
+                        Text(message).font(.footnote).foregroundStyle(.red)
+                    }
                 }
             }
             Section("Forecast disclaimer") {
-                Text("Savings and investment projections are estimates for planning. Investment returns are not guaranteed, and BudgetBuddy does not provide financial advice.")
+                Text("Savings and investment projections are estimates for planning. Investment returns are not guaranteed, and Turtle Budgeting does not provide financial advice.")
             }
         }
         .navigationTitle("Privacy & Data")

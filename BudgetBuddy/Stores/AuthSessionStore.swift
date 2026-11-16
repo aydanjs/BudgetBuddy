@@ -25,7 +25,7 @@ final class AuthSessionStore: ObservableObject {
         hasAppleAccount = !userID.isEmpty
         displayName = defaults.string(forKey: displayNameKey) ?? ""
         hasCompletedOnboarding = defaults.bool(forKey: onboardingKey)
-        serverSessionToken = KeychainSession.load()
+        serverSessionToken = AppFeatures.bankSyncEnabled ? KeychainSession.load() : nil
     }
 
     func completeAppleSignIn(_ result: Result<ASAuthorization, Error>) {
@@ -69,9 +69,14 @@ final class AuthSessionStore: ObservableObject {
             authenticationMessage = nil
             isUnlocked = true
 
+            guard AppFeatures.bankSyncEnabled else {
+                serverAuthenticationMessage = nil
+                return
+            }
+
             guard let tokenData = credential.identityToken,
                   let identityToken = String(data: tokenData, encoding: .utf8) else {
-                serverAuthenticationMessage = "Apple signed you in, but the secure bank-sync session could not be created. You can reconnect from Bank Sync."
+                serverAuthenticationMessage = "Apple signed you in, but the optional bank-sync session could not be created."
                 return
             }
             Task { await authenticateServer(identityToken: identityToken) }

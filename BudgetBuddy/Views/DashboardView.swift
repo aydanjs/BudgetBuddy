@@ -310,7 +310,7 @@ struct InsightsView: View {
             .chartYAxis { AxisMarks(format: .currency(code: currencyCode).precision(.fractionLength(0))) }
             .chartXAxis { AxisMarks(values: .stride(by: .month)) { _ in AxisGridLine(); AxisTick(); AxisValueLabel(format: .dateTime.month(.abbreviated)) } }
             .frame(height: 170)
-            Text("Year to date · BudgetBuddy records balance changes, and you can add earlier balances in History.")
+            Text("Year to date · Turtle Budgeting records balance changes, and you can add earlier balances in History.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }

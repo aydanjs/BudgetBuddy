@@ -2,7 +2,7 @@ import AuthenticationServices
 import SwiftUI
 
 /// Change this single value after the final app name is selected.
-let appDisplayName = "Budget Buddy"
+let appDisplayName = "Turtle Budgeting"
 
 struct WelcomeView: View {
     @EnvironmentObject private var auth: AuthSessionStore
@@ -166,7 +166,7 @@ struct OnboardingView: View {
     @State private var loadedExistingSettings = false
     @State private var showingBankConnection = false
 
-    private let finalStep = 5
+    private var finalStep: Int { AppFeatures.bankSyncEnabled ? 5 : 4 }
 
     var body: some View {
         ZStack {
@@ -243,7 +243,7 @@ struct OnboardingView: View {
         case 1: incomeStep
         case 2: housingStep
         case 3: balancesStep
-        case 4: bankStep
+        case 4 where AppFeatures.bankSyncEnabled: bankStep
         default: reviewStep
         }
     }
@@ -406,7 +406,12 @@ struct OnboardingView: View {
             }
             .onboardingCard()
 
-            Label("Your dashboard will use actual transactions as you add or import them.", systemImage: "checkmark.shield.fill")
+            Label(
+                AppFeatures.bankSyncEnabled
+                    ? "Your dashboard will use actual transactions as you add or import them."
+                    : "Your dashboard will use actual transactions as you add them.",
+                systemImage: "checkmark.shield.fill"
+            )
                 .font(.subheadline)
                 .foregroundStyle(Color.budgetBuddyGreen)
         }
@@ -429,7 +434,7 @@ struct OnboardingView: View {
                 VStack(spacing: 8) {
                     Text("Secure bank connection")
                         .font(.title3.bold())
-                    Text("Plaid handles the bank login screen. BudgetBuddy never receives or stores your bank username or password.")
+                    Text("Plaid handles the bank login screen. Turtle Budgeting never receives or stores your bank username or password.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -472,7 +477,7 @@ struct OnboardingView: View {
                 .controlSize(.large)
             }
 
-            if step != 4 {
+            if !AppFeatures.bankSyncEnabled || step != 4 {
                 Button {
                     if step == finalStep {
                         saveAndFinish()

@@ -57,7 +57,7 @@ private struct LaunchAnimationView: View {
                     .frame(width: turtleSize, height: turtleSize)
                     .offset(y: isSwimming ? finishY : startY)
                     .shadow(color: Color.budgetBuddyNavy.opacity(0.14), radius: 18, y: 10)
-                    .accessibilityLabel("BudgetBuddy turtle swimming upward")
+                    .accessibilityLabel("Turtle Budgeting turtle swimming upward")
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
@@ -66,7 +66,7 @@ private struct LaunchAnimationView: View {
     }
 
     private var titleText: some View {
-        Text("Budget Buddy")
+        Text("Turtle Budgeting")
             .font(.custom("AvenirNext-DemiBold", size: 42, relativeTo: .largeTitle))
             .tracking(0.2 + (1 - titleMaterialization) * 3.8)
     }

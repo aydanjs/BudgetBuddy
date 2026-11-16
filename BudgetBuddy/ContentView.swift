@@ -2,6 +2,12 @@ import SwiftUI
 
 let currencyCode = Locale.current.currency?.identifier ?? "USD"
 
+/// Public beta features. Keep the Plaid implementation in the project so it can
+/// return later without exposing bank connection controls in the manual beta.
+enum AppFeatures {
+    static let bankSyncEnabled = false
+}
+
 struct ContentView: View {
     @EnvironmentObject private var auth: AuthSessionStore
     @Environment(\.scenePhase) private var scenePhase
