@@ -8,7 +8,7 @@ struct AddTransactionView: View {
     @State private var category: TransactionCategory
     @State private var date: Date
     @State private var notes: String
-    @State private var isIncome: Bool
+    @State private var transactionType: TransactionEntryType
 
     init(transaction: Transaction? = nil) {
         self.transaction = transaction
@@ -16,7 +16,13 @@ struct AddTransactionView: View {
         _category = State(initialValue: transaction?.category ?? .groceries)
         _date = State(initialValue: transaction?.date ?? Date())
         _notes = State(initialValue: transaction?.notes ?? "")
-        _isIncome = State(initialValue: transaction?.isIncome ?? false)
+        if transaction?.isTransfer == true {
+            _transactionType = State(initialValue: .transfer)
+        } else if transaction?.isIncome == true {
+            _transactionType = State(initialValue: .income)
+        } else {
+            _transactionType = State(initialValue: .expense)
+        }
     }
 
     private var parsedAmount: Decimal? { Decimal(string: amount.replacingOccurrences(of: ",", with: "."), locale: Locale(identifier: "en_US_POSIX")) }
@@ -24,14 +30,19 @@ struct AddTransactionView: View {
     var body: some View {
         Form {
             Section("Amount") {
-                Picker("Type", selection: $isIncome) { Text("Expense").tag(false); Text("Income").tag(true) }.pickerStyle(.segmented)
+                Picker("Type", selection: $transactionType) {
+                    ForEach(TransactionEntryType.allCases) { type in
+                        Text(type.rawValue).tag(type)
+                    }
+                }
+                .pickerStyle(.segmented)
                 HStack {
                     Text(Locale.current.currencySymbol ?? "$").font(.title2).foregroundStyle(.secondary)
                     TextField("0.00", text: $amount).font(.title2.bold()).keyboardType(.decimalPad)
                 }
             }
             Section("Details") {
-                if !isIncome {
+                if transactionType == .expense {
                     Picker("Category", selection: $category) {
                         ForEach(store.expenseCategories) { item in
                             Label(item.rawValue, systemImage: item.symbol).tag(item)
@@ -70,7 +81,9 @@ struct AddTransactionView: View {
             category: category,
             date: date,
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-            isIncome: isIncome
+            isIncome: transactionType == .income,
+            isTransfer: transactionType == .transfer,
+            externalID: transaction?.externalID
         )
         if transaction == nil {
             store.add(updated)
@@ -79,4 +92,12 @@ struct AddTransactionView: View {
         }
         dismiss()
     }
+}
+
+private enum TransactionEntryType: String, CaseIterable, Identifiable {
+    case expense = "Expense"
+    case income = "Income"
+    case transfer = "Transfer"
+
+    var id: Self { self }
 }

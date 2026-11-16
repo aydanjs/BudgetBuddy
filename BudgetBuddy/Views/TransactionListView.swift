@@ -14,7 +14,7 @@ struct TransactionListView: View {
     private var filteredTransactions: [Transaction] {
         return store.transactions.filter { transaction in
             let matchesMonth = selectedMonth.map { Calendar.current.isDate(transaction.date, equalTo: $0, toGranularity: .month) } ?? true
-            let matchesCategory = selectedCategory.map { !transaction.isIncome && transaction.category == $0 } ?? true
+            let matchesCategory = selectedCategory.map { !transaction.isIncome && !transaction.isTransfer && transaction.category == $0 } ?? true
             return matchesMonth && matchesCategory
         }
     }
@@ -73,22 +73,48 @@ struct TransactionListView: View {
 
 struct TransactionRow: View {
     let transaction: Transaction
+
+    private var symbol: String {
+        if transaction.isTransfer { return "arrow.left.arrow.right.circle.fill" }
+        return transaction.isIncome ? "dollarsign.circle.fill" : transaction.category.symbol
+    }
+
+    private var accentColor: Color {
+        if transaction.isTransfer { return .secondary }
+        return transaction.isIncome ? .budgetBuddyGreen : .budgetBuddyBlue
+    }
+
+    private var fallbackTitle: String {
+        if transaction.isTransfer { return "Transfer" }
+        return transaction.isIncome ? "Income" : transaction.category.rawValue
+    }
+
+    private var detailText: String {
+        if transaction.isTransfer {
+            return "Transfer · Excluded from spending"
+        }
+        if transaction.isIncome {
+            return transaction.date.formatted(.dateTime.month(.abbreviated).day())
+        }
+        return "\(transaction.category.rawValue) · \(transaction.category.group.rawValue)"
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: transaction.isIncome ? "dollarsign.circle.fill" : transaction.category.symbol)
+            Image(systemName: symbol)
                 .font(.title2)
-                .foregroundStyle(transaction.isIncome ? Color.budgetBuddyGreen : Color.budgetBuddyBlue)
+                .foregroundStyle(accentColor)
                 .frame(width: 36, height: 36)
-                .background((transaction.isIncome ? Color.budgetBuddyBrightGreen : Color.budgetBuddyBlue).opacity(0.14), in: Circle())
+                .background(accentColor.opacity(0.14), in: Circle())
             VStack(alignment: .leading, spacing: 3) {
-                Text(transaction.notes.isEmpty ? (transaction.isIncome ? "Income" : transaction.category.rawValue) : transaction.notes).font(.body.weight(.medium))
-                Text(transaction.isIncome ? transaction.date.formatted(.dateTime.month(.abbreviated).day()) : "\(transaction.category.rawValue) · \(transaction.category.group.rawValue)")
+                Text(transaction.notes.isEmpty ? fallbackTitle : transaction.notes).font(.body.weight(.medium))
+                Text(detailText)
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             Text(transaction.amount, format: .currency(code: currencyCode))
                 .font(.subheadline.bold())
-                .foregroundStyle(transaction.isIncome ? Color.budgetBuddyGreen : Color.primary)
+                .foregroundStyle(transaction.isTransfer ? Color.secondary : (transaction.isIncome ? Color.budgetBuddyGreen : Color.primary))
         }.padding(.vertical, 6)
     }
 }

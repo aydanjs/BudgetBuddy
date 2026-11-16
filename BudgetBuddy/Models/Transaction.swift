@@ -175,16 +175,34 @@ struct Transaction: Identifiable, Codable {
     var date: Date
     var notes: String
     var isIncome: Bool
+    var isTransfer: Bool
     var externalID: String?
 
-    init(id: UUID = UUID(), amount: Decimal, category: TransactionCategory, date: Date, notes: String, isIncome: Bool, externalID: String? = nil) {
+    init(id: UUID = UUID(), amount: Decimal, category: TransactionCategory, date: Date, notes: String, isIncome: Bool, isTransfer: Bool = false, externalID: String? = nil) {
         self.id = id
         self.amount = amount
         self.category = category
         self.date = date
         self.notes = notes
         self.isIncome = isIncome
+        self.isTransfer = isTransfer
         self.externalID = externalID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, amount, category, date, notes, isIncome, isTransfer, externalID
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        amount = try container.decode(Decimal.self, forKey: .amount)
+        category = try container.decode(TransactionCategory.self, forKey: .category)
+        date = try container.decode(Date.self, forKey: .date)
+        notes = try container.decode(String.self, forKey: .notes)
+        isIncome = try container.decode(Bool.self, forKey: .isIncome)
+        isTransfer = try container.decodeIfPresent(Bool.self, forKey: .isTransfer) ?? false
+        externalID = try container.decodeIfPresent(String.self, forKey: .externalID)
     }
 }
 

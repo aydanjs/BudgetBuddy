@@ -53,15 +53,15 @@ final class TransactionStore: ObservableObject {
     }
 
     func actualIncome(in month: Date) -> Decimal {
-        transactions(in: month).filter(\.isIncome).reduce(0) { $0 + $1.amount }
+        transactions(in: month).filter { $0.isIncome && !$0.isTransfer }.reduce(0) { $0 + $1.amount }
     }
 
     func actualSpending(in month: Date) -> Decimal {
-        transactions(in: month).filter { !$0.isIncome && $0.category != .savings }.reduce(0) { $0 + $1.amount }
+        transactions(in: month).filter { !$0.isIncome && !$0.isTransfer && $0.category != .savings }.reduce(0) { $0 + $1.amount }
     }
 
     func actualSpending(for category: TransactionCategory, in month: Date) -> Decimal {
-        transactions(in: month).filter { !$0.isIncome && $0.category == category }.reduce(0) { $0 + $1.amount }
+        transactions(in: month).filter { !$0.isIncome && !$0.isTransfer && $0.category == category }.reduce(0) { $0 + $1.amount }
     }
 
     func budget(for category: TransactionCategory) -> Decimal {
@@ -143,6 +143,19 @@ final class TransactionStore: ObservableObject {
         saveSettings()
         recordCurrentNetWorth()
         objectWillChange.send()
+    }
+
+    func applyLinkedAccountBalances(cash: Decimal?, investments: Decimal?) {
+        guard cash != nil || investments != nil else { return }
+
+        updateSettings { settings in
+            if let cash {
+                settings.currentSavings = max(0, cash)
+            }
+            if let investments {
+                settings.investmentBalance = max(0, investments)
+            }
+        }
     }
 
     func saveDebt(_ debt: Debt) {

@@ -76,7 +76,14 @@ struct PlaidConnectionView: View {
                                     Text(abs(item.source.amount), format: .currency(code: item.source.isoCurrencyCode ?? currencyCode)).bold()
                                 }
                             }
-                            if item.source.amount >= 0 {
+                            Toggle("Exclude as transfer", isOn: $item.isTransfer)
+                                .font(.caption)
+
+                            if item.isTransfer {
+                                Label("Transfer — not counted as spending or income", systemImage: "arrow.left.arrow.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else if item.source.amount >= 0 {
                                 Picker("Category", selection: $item.category) {
                                     ForEach(store.expenseCategories) { category in
                                         Text(category.rawValue).tag(category)
@@ -159,7 +166,8 @@ struct PlaidConnectionView: View {
                 category: item.category,
                 date: date,
                 notes: item.source.name,
-                isIncome: item.source.amount < 0,
+                isIncome: !item.isTransfer && item.source.amount < 0,
+                isTransfer: item.isTransfer,
                 externalID: item.source.transactionID
             )
         }
@@ -281,7 +289,11 @@ final class PlaidConnectionModel: ObservableObject {
         do {
             let response: SyncResponse = try await post("/api/transactions-sync", body: EmptyBody())
             reviewItems = response.added.filter { !$0.pending }.map { transaction in
-                PlaidReviewItem(source: transaction, category: Self.suggestedCategory(for: transaction))
+                PlaidReviewItem(
+                    source: transaction,
+                    category: Self.suggestedCategory(for: transaction),
+                    isTransfer: Self.suggestedIsTransfer(for: transaction)
+                )
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -374,10 +386,24 @@ final class PlaidConnectionModel: ObservableObject {
         default: .other
         }
     }
+
+    private static func suggestedIsTransfer(for transaction: PlaidTransaction) -> Bool {
+        let primary = transaction.personalFinanceCategory?.primary ?? ""
+        let detailed = transaction.personalFinanceCategory?.detailed ?? ""
+
+        if primary == "TRANSFER_IN" || primary == "TRANSFER_OUT" {
+            return true
+        }
+
+        // Paying a credit-card balance moves money between the user's accounts.
+        // The card purchases themselves remain the expenses.
+        return detailed.contains("CREDIT_CARD") && detailed.contains("PAYMENT")
+    }
 }
 
 struct ConnectedAccountsView: View {
     @EnvironmentObject private var appAuth: AuthSessionStore
+    @EnvironmentObject private var store: TransactionStore
     @StateObject private var model = PlaidConnectionModel()
     @StateObject private var liveSummary = PlaidLiveSummaryModel()
     @State private var connectionPendingRemoval: PlaidBankConnection?
@@ -527,7 +553,7 @@ struct ConnectedAccountsView: View {
             }
 
             Button {
-                Task { await liveSummary.load(sessionToken: appAuth.serverSessionToken) }
+                Task { await loadLiveValues() }
             } label: {
                 Label("Load live values", systemImage: "arrow.clockwise.circle.fill")
             }
@@ -542,8 +568,20 @@ struct ConnectedAccountsView: View {
         } header: {
             Text("Live linked money")
         } footer: {
-            Text("Live values are shown separately from your budget plan and forecast. Investments and debt appear after Plaid approves those products and the account is connected with permission to share them.")
+            Text("Loading live values updates the cash total on your dashboard. Investments update only when Plaid returns approved investment data; debt remains informational.")
         }
+    }
+
+    private func loadLiveValues() async {
+        await liveSummary.load(sessionToken: appAuth.serverSessionToken)
+        guard let summary = liveSummary.summary else { return }
+
+        let cash = summary.balanceAvailable ? Decimal(summary.cashTotal) : nil
+        let investments = summary.investmentsAvailable
+            ? summary.investmentsTotal.map { Decimal($0) }
+            : nil
+
+        store.applyLinkedAccountBalances(cash: cash, investments: investments)
     }
 
     private var connectedAccountActionsSection: some View {
@@ -680,6 +718,7 @@ struct PlaidReviewItem: Identifiable {
     let id = UUID()
     let source: PlaidTransaction
     var category: TransactionCategory
+    var isTransfer: Bool
     var isSelected = true
 }
 
@@ -750,12 +789,14 @@ private struct SyncResponse: Decodable {
 
 struct PlaidPersonalFinanceCategory: Decodable {
     let primary: String
+    let detailed: String
 
-    enum CodingKeys: String, CodingKey { case primary }
+    enum CodingKeys: String, CodingKey { case primary, detailed }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         primary = try container.decodeIfPresent(String.self, forKey: .primary) ?? "OTHER"
+        detailed = try container.decodeIfPresent(String.self, forKey: .detailed) ?? "OTHER"
     }
 }
 
