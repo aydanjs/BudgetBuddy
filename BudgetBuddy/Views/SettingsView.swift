@@ -187,6 +187,7 @@ private struct PrivacyDataView: View {
                 Text("Budget and forecast data remains in the app's private storage. If you enable bank sync, Turtle Budgeting’s secure server stores your account connection and imported transaction data so Plaid updates can be delivered.")
                 Text("Turtle Budgeting never receives your bank username or password. You can disconnect a bank or delete your online account and bank-sync data from the app.")
                 Link("Read the Privacy Notice", destination: URL(string: "https://github.com/aydanjs/BudgetBuddy/blob/main/PRIVACY_POLICY.md")!)
+                Link("Contact Turtle Budgeting Privacy", destination: URL(string: "mailto:turtlebudgeting@gmail.com")!)
             }
             Section("Online bank-sync data") {
                 Text("Deleting your online account removes your server-side Turtle Budgeting account, connected Plaid banks, encrypted connection tokens, recorded consent, and imported bank transactions. Your local budget on this iPhone stays here unless you use Start Over separately.")

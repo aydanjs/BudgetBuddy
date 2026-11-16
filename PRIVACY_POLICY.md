@@ -40,4 +40,4 @@ BudgetBuddy uses Apple Keychain for the device’s bank-sync session, encryption
 
 ## Changes and contact
 
-We may update this notice as Turtle Budgeting changes. We will update the effective date when we do. Before a public release, Turtle Budgeting will publish a monitored privacy contact email and a hosted version of this notice. Until then, TestFlight users can contact the team through the TestFlight feedback channel.
+We may update this notice as Turtle Budgeting changes. We will update the effective date when we do. For privacy questions, data requests, or suspected security concerns, contact us at [turtlebudgeting@gmail.com](mailto:turtlebudgeting@gmail.com).
