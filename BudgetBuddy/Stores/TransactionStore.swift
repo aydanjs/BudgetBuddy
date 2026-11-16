@@ -146,6 +146,13 @@ final class TransactionStore: ObservableObject {
         saveTransactions()
     }
 
+    /// Removes only the transactions saved on this iPhone. Budget settings,
+    /// net-worth history, sign-in, and bank connections are intentionally kept.
+    func clearAllTransactions() {
+        transactions = []
+        saveTransactions()
+    }
+
     func resetLocalData() {
         transactions = []
         settings = BudgetSettings()

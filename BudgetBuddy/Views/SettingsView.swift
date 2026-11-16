@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject private var store: TransactionStore
     @EnvironmentObject private var auth: AuthSessionStore
     @State private var showingResetConfirmation = false
+    @State private var showingClearTransactionsConfirmation = false
 
     var body: some View {
         Form {
@@ -101,6 +102,14 @@ struct SettingsView: View {
 
             Section("Reset") {
                 Button(role: .destructive) {
+                    showingClearTransactionsConfirmation = true
+                } label: {
+                    Label("Clear All Transactions", systemImage: "trash")
+                }
+                Text("Removes transactions saved on this iPhone but keeps your budget plan, net-worth history, Apple login, and connected banks.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Button(role: .destructive) {
                     showingResetConfirmation = true
                 } label: {
                     Label("Start Over With Guided Setup", systemImage: "arrow.counterclockwise")
@@ -118,6 +127,14 @@ struct SettingsView: View {
             }
         } message: {
             Text("This cannot be undone. Your local numbers and transactions will return to zero, then BudgetBuddy will guide you through setup again. Your Apple login and bank connection will stay in place.")
+        }
+        .alert("Clear all transactions?", isPresented: $showingClearTransactionsConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear Transactions", role: .destructive) {
+                store.clearAllTransactions()
+            }
+        } message: {
+            Text("This removes every transaction saved on this iPhone. Your budget plan, net-worth history, Apple login, and connected banks will stay in place. You can sync your bank again later to review and import transactions.")
         }
     }
 
