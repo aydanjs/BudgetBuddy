@@ -2,7 +2,7 @@ import AuthenticationServices
 import SwiftUI
 
 /// Change this single value after the final app name is selected.
-let appDisplayName = "Budget Buddy"
+let appDisplayName = "Turtle Budgeting"
 
 struct WelcomeView: View {
     @EnvironmentObject private var auth: AuthSessionStore
@@ -429,7 +429,7 @@ struct OnboardingView: View {
                 VStack(spacing: 8) {
                     Text("Secure bank connection")
                         .font(.title3.bold())
-                    Text("Plaid handles the bank login screen. BudgetBuddy never receives or stores your bank username or password.")
+                    Text("Plaid handles the bank login screen. Turtle Budgeting never receives or stores your bank username or password.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

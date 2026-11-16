@@ -137,7 +137,7 @@ struct SettingsView: View {
                 auth.restartOnboarding()
             }
         } message: {
-            Text("This cannot be undone. Your local numbers and transactions will return to zero, then BudgetBuddy will guide you through setup again. Your Apple login and bank connection will stay in place.")
+            Text("This cannot be undone. Your local numbers and transactions will return to zero, then Turtle Budgeting will guide you through setup again. Your Apple login and bank connection will stay in place.")
         }
         .alert("Clear all transactions?", isPresented: $showingClearTransactionsConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -351,7 +351,7 @@ private struct PrivacyDataView: View {
                 }
             }
             Section("Forecast disclaimer") {
-                Text("Savings and investment projections are estimates for planning. Investment returns are not guaranteed, and BudgetBuddy does not provide financial advice.")
+                Text("Savings and investment projections are estimates for planning. Investment returns are not guaranteed, and Turtle Budgeting does not provide financial advice.")
             }
         }
         .navigationTitle("Privacy & Data")

@@ -361,14 +361,14 @@ final class PlaidConnectionModel: ObservableObject {
         let (_, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
             if (response as? HTTPURLResponse)?.statusCode == 401 { sessionExpired = true }
-            throw PlaidLocalError(message: "BudgetBuddy could not remove this bank connection.", statusCode: (response as? HTTPURLResponse)?.statusCode)
+            throw PlaidLocalError(message: "Turtle Budgeting could not remove this bank connection.", statusCode: (response as? HTTPURLResponse)?.statusCode)
         }
     }
 
     private func perform<Response: Decodable>(_ request: URLRequest) async throws -> Response {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
-            let message = (try? JSONDecoder().decode(ServerError.self, from: data).error) ?? "The BudgetBuddy server returned an error."
+            let message = (try? JSONDecoder().decode(ServerError.self, from: data).error) ?? "The Turtle Budgeting server returned an error."
             if (response as? HTTPURLResponse)?.statusCode == 401 { sessionExpired = true }
             throw PlaidLocalError(message: message, statusCode: (response as? HTTPURLResponse)?.statusCode)
         }
@@ -412,7 +412,7 @@ struct ConnectedAccountsView: View {
         List {
             if appAuth.serverSessionToken == nil {
                 Section("Secure sign-in needed") {
-                    Text("Sign in with the Apple account you used for BudgetBuddy to manage your connected banks.")
+                    Text("Sign in with the Apple account you used for Turtle Budgeting to manage your connected banks.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     SignInWithAppleButton(.continue) { request in
@@ -487,7 +487,7 @@ struct ConnectedAccountsView: View {
                 ContentUnavailableView {
                     Label("No connected banks", systemImage: "building.columns")
                 } description: {
-                    Text("Connect a bank when you're ready. Plaid handles the bank sign-in, and BudgetBuddy never sees your password.")
+                    Text("Connect a bank when you're ready. Plaid handles the bank sign-in, and Turtle Budgeting never sees your password.")
                 } actions: {
                     NavigationLink("Connect a bank") { PlaidConnectionView() }
                         .buttonStyle(.borderedProminent)
@@ -656,7 +656,7 @@ final class PlaidLiveSummaryModel: ObservableObject {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
                 if (response as? HTTPURLResponse)?.statusCode == 401 { sessionExpired = true }
-                let message = (try? JSONDecoder().decode(ServerError.self, from: data).error) ?? "BudgetBuddy could not load live account values."
+                let message = (try? JSONDecoder().decode(ServerError.self, from: data).error) ?? "Turtle Budgeting could not load live account values."
                 throw PlaidLocalError(message: message, statusCode: (response as? HTTPURLResponse)?.statusCode)
             }
             summary = try JSONDecoder.plaid.decode(PlaidLiveSummary.self, from: data)

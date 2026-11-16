@@ -159,7 +159,7 @@ final class AuthSessionStore: ObservableObject {
             request.setValue("Bearer \(serverSessionToken)", forHTTPHeaderField: "Authorization")
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
-                let message = (try? JSONDecoder().decode(ServerError.self, from: data).error) ?? "BudgetBuddy could not delete your online account."
+                let message = (try? JSONDecoder().decode(ServerError.self, from: data).error) ?? "Turtle Budgeting could not delete your online account."
                 throw PlaidLocalError(message: message, statusCode: (response as? HTTPURLResponse)?.statusCode)
             }
             signOut()
@@ -182,7 +182,7 @@ final class AuthSessionStore: ObservableObject {
             request.httpBody = try JSONEncoder().encode(["identity_token": identityToken])
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
-                let message = (try? JSONDecoder().decode(ServerError.self, from: data).error) ?? "BudgetBuddy could not create a secure bank-sync session."
+                let message = (try? JSONDecoder().decode(ServerError.self, from: data).error) ?? "Turtle Budgeting could not create a secure bank-sync session."
                 throw PlaidLocalError(message: message)
             }
             let token = try JSONDecoder.plaid.decode(SessionResponse.self, from: data).sessionToken
