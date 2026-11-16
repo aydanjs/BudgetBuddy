@@ -377,7 +377,7 @@ struct InsightsView: View {
     }
 
     private var displayedCategories: [TransactionCategory] {
-        TransactionCategory.expenseCategories.filter { category in
+        store.expenseCategories.filter { category in
             category != .tithing && (
                 store.budget(for: category) > 0 || average(of: { store.actualSpending(for: category, in: $0) }) > 0
             )

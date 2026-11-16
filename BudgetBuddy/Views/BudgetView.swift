@@ -41,7 +41,7 @@ struct BudgetView: View {
     }
 
     private func categories(in group: BudgetGroup) -> [TransactionCategory] {
-        TransactionCategory.expenseCategories.filter {
+        store.expenseCategories.filter {
             $0.group == group && !($0 == .rent && store.settings.housingType == .neither)
         }
     }

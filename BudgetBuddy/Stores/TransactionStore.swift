@@ -40,6 +40,13 @@ final class TransactionStore: ObservableObject {
     var plannedSavings: Decimal { plannedNetIncome - totalPlannedSpending }
     var currentNetWorth: Decimal { settings.currentSavings + settings.investmentBalance }
     var housingLabel: String { settings.housingType == .mortgage ? "Mortgage" : "Rent" }
+    var expenseCategories: [TransactionCategory] {
+        TransactionCategory.expenseCategories.filter { !settings.hiddenBuiltInCategoryIDs.contains($0.id) }
+            + settings.customCategories.map(\.transactionCategory)
+    }
+    var manageableBuiltInCategories: [TransactionCategory] {
+        TransactionCategory.expenseCategories.filter { $0 != .tithing && $0 != .debtPayment }
+    }
 
     func transactions(in month: Date) -> [Transaction] {
         transactions.filter { Calendar.current.isDate($0.date, equalTo: month, toGranularity: .month) }
@@ -67,6 +74,66 @@ final class TransactionStore: ObservableObject {
 
     func setBudget(_ amount: Decimal, for category: TransactionCategory) {
         settings.categoryBudgets[category.rawValue] = max(0, amount)
+        saveSettings()
+        objectWillChange.send()
+    }
+
+    @discardableResult
+    func addCustomCategory(name: String, group: BudgetGroup, symbol: String) -> Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty,
+              !expenseCategories.contains(where: { $0.rawValue.caseInsensitiveCompare(trimmedName) == .orderedSame })
+        else { return false }
+        settings.customCategories.append(CustomBudgetCategory(name: trimmedName, group: group, symbol: symbol))
+        saveSettings()
+        objectWillChange.send()
+        return true
+    }
+
+    @discardableResult
+    func updateCustomCategory(_ category: CustomBudgetCategory, name: String, group: BudgetGroup, symbol: String) -> Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty,
+              !expenseCategories.contains(where: {
+                  $0.id != category.transactionCategory.id &&
+                  $0.rawValue.caseInsensitiveCompare(trimmedName) == .orderedSame
+              }),
+              let index = settings.customCategories.firstIndex(where: { $0.id == category.id })
+        else { return false }
+
+        let previous = settings.customCategories[index]
+        let updated = CustomBudgetCategory(id: previous.id, name: trimmedName, group: group, symbol: symbol)
+        settings.customCategories[index] = updated
+        if previous.name != updated.name, let budget = settings.categoryBudgets.removeValue(forKey: previous.name) {
+            settings.categoryBudgets[updated.name] = budget
+        }
+        let previousCategory = previous.transactionCategory
+        let updatedCategory = updated.transactionCategory
+        transactions = transactions.map { transaction in
+            var transaction = transaction
+            if transaction.category.id == previousCategory.id { transaction.category = updatedCategory }
+            return transaction
+        }
+        saveTransactions()
+        saveSettings()
+        objectWillChange.send()
+        return true
+    }
+
+    func deleteCustomCategory(_ category: CustomBudgetCategory) {
+        settings.customCategories.removeAll { $0.id == category.id }
+        settings.categoryBudgets.removeValue(forKey: category.name)
+        saveSettings()
+        objectWillChange.send()
+    }
+
+    func setBuiltInCategory(_ category: TransactionCategory, isVisible: Bool) {
+        guard !category.id.hasPrefix("custom-") else { return }
+        if isVisible {
+            settings.hiddenBuiltInCategoryIDs.remove(category.id)
+        } else {
+            settings.hiddenBuiltInCategoryIDs.insert(category.id)
+        }
         saveSettings()
         objectWillChange.send()
     }

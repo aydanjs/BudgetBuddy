@@ -33,7 +33,7 @@ struct AddTransactionView: View {
             Section("Details") {
                 if !isIncome {
                     Picker("Category", selection: $category) {
-                        ForEach(TransactionCategory.expenseCategories) { item in
+                        ForEach(store.expenseCategories) { item in
                             Label(item.rawValue, systemImage: item.symbol).tag(item)
                         }
                     }

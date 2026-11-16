@@ -49,7 +49,7 @@ struct TransactionListView: View {
                     }
                     Picker("Category", selection: $selectedCategory) {
                         Text("All Categories").tag(nil as TransactionCategory?)
-                        ForEach(TransactionCategory.allCases) { category in
+                        ForEach(store.expenseCategories) { category in
                             Label(category.rawValue, systemImage: category.symbol).tag(category as TransactionCategory?)
                         }
                     }

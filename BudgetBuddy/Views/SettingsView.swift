@@ -60,6 +60,17 @@ struct SettingsView: View {
                 DatePicker("First budget month", selection: dateBinding, displayedComponents: .date)
             }
 
+            Section("Categories") {
+                NavigationLink {
+                    CategoryManagerView()
+                } label: {
+                    Label("Manage budget categories", systemImage: "square.grid.2x2.fill")
+                }
+                Text("Add your own categories, edit them later, or hide included categories you do not use. Past transactions keep their original labels.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Forecast assumptions") {
                 PercentageSetting(title: "Savings APY", decimal: binding(\.savingsAPY))
                 PercentageSetting(title: "Low stock return", decimal: binding(\.lowInvestmentReturn))
@@ -169,6 +180,139 @@ struct SettingsView: View {
         Text("Enter the usual amount that reaches your bank account after taxes and deductions.")
             .font(.caption)
             .foregroundStyle(.secondary)
+    }
+}
+
+private struct CategoryManagerView: View {
+    @EnvironmentObject private var store: TransactionStore
+    @State private var showingAddCategory = false
+
+    var body: some View {
+        List {
+            Section {
+                if store.settings.customCategories.isEmpty {
+                    Text("Add categories such as Pets, Subscriptions, Utilities, or Travel.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(store.settings.customCategories) { category in
+                        NavigationLink {
+                            CustomCategoryEditor(category: category)
+                        } label: {
+                            Label(category.name, systemImage: category.symbol)
+                        }
+                    }
+                    .onDelete { offsets in
+                        let categories = offsets.map { store.settings.customCategories[$0] }
+                        categories.forEach(store.deleteCustomCategory)
+                    }
+                }
+            } header: {
+                Text("Your categories")
+            } footer: {
+                Text("Deleting a custom category removes it from budgets and new transaction choices. It does not change older transactions.")
+            }
+
+            Section {
+                ForEach(store.manageableBuiltInCategories) { category in
+                    Toggle(isOn: Binding(
+                        get: { store.expenseCategories.contains(category) },
+                        set: { store.setBuiltInCategory(category, isVisible: $0) }
+                    )) {
+                        Label(category.rawValue, systemImage: category.symbol)
+                    }
+                }
+            } header: {
+                Text("Included categories")
+            } footer: {
+                Text("Turn off categories you do not use. You can turn them back on whenever you want.")
+            }
+        }
+        .navigationTitle("Budget Categories")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingAddCategory = true } label: { Image(systemName: "plus") }
+                    .accessibilityLabel("Add category")
+            }
+        }
+        .sheet(isPresented: $showingAddCategory) {
+            NavigationStack { CustomCategoryEditor() }
+        }
+    }
+}
+
+private struct CustomCategoryEditor: View {
+    @EnvironmentObject private var store: TransactionStore
+    @Environment(\.dismiss) private var dismiss
+    private let existingCategory: CustomBudgetCategory?
+    @State private var name: String
+    @State private var group: BudgetGroup
+    @State private var symbol: String
+    @State private var showsDuplicateNameMessage = false
+
+    private let symbols = ["tag.fill", "star.fill", "cart.fill", "bolt.fill", "heart.fill", "airplane", "gamecontroller.fill", "pawprint.fill", "tv.fill", "figure.run", "wrench.and.screwdriver.fill", "ellipsis.circle.fill"]
+    private let groups: [BudgetGroup] = [.needs, .wants, .giving]
+
+    init(category: CustomBudgetCategory? = nil) {
+        existingCategory = category
+        _name = State(initialValue: category?.name ?? "")
+        _group = State(initialValue: category?.group ?? .needs)
+        _symbol = State(initialValue: category?.symbol ?? "tag.fill")
+    }
+
+    var body: some View {
+        Form {
+            Section("Category") {
+                TextField("Name", text: $name)
+                Picker("Budget group", selection: $group) {
+                    ForEach(groups) { Text($0.rawValue).tag($0) }
+                }
+            }
+            Section("Icon") {
+                Picker("Icon", selection: $symbol) {
+                    ForEach(symbols, id: \.self) { symbol in
+                        Label(symbolName(for: symbol), systemImage: symbol).tag(symbol)
+                    }
+                }
+            }
+            if showsDuplicateNameMessage {
+                Text("Choose a different category name. Names must be unique.")
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+        }
+        .navigationTitle(existingCategory == nil ? "New Category" : "Edit Category")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+            ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+        }
+    }
+
+    private func save() {
+        let didSave: Bool
+        if let existingCategory {
+            didSave = store.updateCustomCategory(existingCategory, name: name, group: group, symbol: symbol)
+        } else {
+            didSave = store.addCustomCategory(name: name, group: group, symbol: symbol)
+        }
+        if didSave { dismiss() } else { showsDuplicateNameMessage = true }
+    }
+
+    private func symbolName(for symbol: String) -> String {
+        switch symbol {
+        case "tag.fill": "Tag"
+        case "star.fill": "Star"
+        case "cart.fill": "Cart"
+        case "bolt.fill": "Utilities"
+        case "heart.fill": "Heart"
+        case "airplane": "Travel"
+        case "gamecontroller.fill": "Games"
+        case "pawprint.fill": "Pets"
+        case "tv.fill": "Subscriptions"
+        case "figure.run": "Fitness"
+        case "wrench.and.screwdriver.fill": "Home"
+        default: "Other"
+        }
     }
 }
 

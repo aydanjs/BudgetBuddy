@@ -8,14 +8,49 @@ enum BudgetGroup: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum TransactionCategory: String, Codable, CaseIterable, Identifiable {
-    case rent = "Rent", college = "College", car = "Car", insurance = "Insurance"
-    case groceries = "Groceries", hygiene = "Hygiene", laundry = "Laundry", gas = "Gas", other = "Other"
-    case fastFood = "Fast Food", fun = "Fun", gifts = "Gifts", dates = "Dates", bigPurchase = "Big Purchase"
-    case tithing = "Tithing", savings = "Savings"
-    case debtPayment = "Debt Payments"
+struct CustomBudgetCategory: Identifiable, Codable, Hashable {
+    var id = UUID()
+    var name: String
+    var group: BudgetGroup
+    var symbol: String
 
-    var id: String { rawValue }
+    var transactionCategory: TransactionCategory {
+        .custom(id: id, name: name, group: group, symbol: symbol)
+    }
+}
+
+enum TransactionCategory: Codable, Hashable, Identifiable {
+    case rent, college, car, insurance, groceries, hygiene, laundry, gas, other
+    case fastFood, fun, gifts, dates, bigPurchase, tithing, savings, debtPayment
+    case custom(id: UUID, name: String, group: BudgetGroup, symbol: String)
+
+    var id: String {
+        if case let .custom(id, _, _, _) = self { return "custom-\(id.uuidString)" }
+        return rawValue
+    }
+
+    var rawValue: String {
+        switch self {
+        case .rent: "Rent"
+        case .college: "College"
+        case .car: "Car"
+        case .insurance: "Insurance"
+        case .groceries: "Groceries"
+        case .hygiene: "Hygiene"
+        case .laundry: "Laundry"
+        case .gas: "Gas"
+        case .other: "Other"
+        case .fastFood: "Fast Food"
+        case .fun: "Fun"
+        case .gifts: "Gifts"
+        case .dates: "Dates"
+        case .bigPurchase: "Big Purchase"
+        case .tithing: "Tithing"
+        case .savings: "Savings"
+        case .debtPayment: "Debt Payments"
+        case let .custom(_, name, _, _): name
+        }
+    }
 
     var group: BudgetGroup {
         switch self {
@@ -23,6 +58,7 @@ enum TransactionCategory: String, Codable, CaseIterable, Identifiable {
         case .fastFood, .fun, .gifts, .dates, .bigPurchase: .wants
         case .tithing: .giving
         case .savings: .savings
+        case let .custom(_, _, group, _): group
         }
     }
 
@@ -45,24 +81,61 @@ enum TransactionCategory: String, Codable, CaseIterable, Identifiable {
         case .tithing: "hands.sparkles.fill"
         case .savings: "banknote.fill"
         case .debtPayment: "creditcard.fill"
+        case let .custom(_, _, _, symbol): symbol
         }
     }
 
-    static var expenseCategories: [TransactionCategory] { allCases.filter { $0 != .savings } }
+    static let expenseCategories: [TransactionCategory] = [
+        .rent, .college, .car, .insurance, .groceries, .hygiene, .laundry, .gas, .other,
+        .fastFood, .fun, .gifts, .dates, .bigPurchase, .tithing, .debtPayment
+    ]
+
+    private struct CustomPayload: Codable {
+        let id: UUID
+        let name: String
+        let group: BudgetGroup
+        let symbol: String
+    }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        let value = try container.decode(String.self)
-        switch value {
-        case "Food": self = .groceries
-        case "Transport": self = .gas
-        case "Entertainment": self = .fun
-        case "Shopping": self = .bigPurchase
-        default:
-            guard let category = Self(rawValue: value) else {
-                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown category")
+        if let value = try? container.decode(String.self) {
+            switch value {
+            case "Food": self = .groceries
+            case "Transport": self = .gas
+            case "Entertainment": self = .fun
+            case "Shopping": self = .bigPurchase
+            case "Rent": self = .rent
+            case "College": self = .college
+            case "Car": self = .car
+            case "Insurance": self = .insurance
+            case "Groceries": self = .groceries
+            case "Hygiene": self = .hygiene
+            case "Laundry": self = .laundry
+            case "Gas": self = .gas
+            case "Other": self = .other
+            case "Fast Food": self = .fastFood
+            case "Fun": self = .fun
+            case "Gifts": self = .gifts
+            case "Dates": self = .dates
+            case "Big Purchase": self = .bigPurchase
+            case "Tithing": self = .tithing
+            case "Savings": self = .savings
+            case "Debt Payments": self = .debtPayment
+            default: throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown category")
             }
-            self = category
+            return
+        }
+        let payload = try container.decode(CustomPayload.self)
+        self = .custom(id: payload.id, name: payload.name, group: payload.group, symbol: payload.symbol)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        if case let .custom(id, name, group, symbol) = self {
+            try container.encode(CustomPayload(id: id, name: name, group: group, symbol: symbol))
+        } else {
+            try container.encode(rawValue)
         }
     }
 }
@@ -186,6 +259,8 @@ struct BudgetSettings: Codable {
     var startingCash: Decimal = 0
     var firstBudgetMonth: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
     var categoryBudgets: [String: Decimal] = Self.defaultBudgets
+    var customCategories: [CustomBudgetCategory] = []
+    var hiddenBuiltInCategoryIDs: Set<String> = []
     var currentSavings: Decimal = 0
     var monthlySavingsContribution: Decimal = 0
     var savingsAPY: Decimal = 0
@@ -207,7 +282,7 @@ struct BudgetSettings: Codable {
 
     private enum CodingKeys: String, CodingKey {
         case incomeType, payFrequency, hourlyRate, scheduledHours, hoursPerWeek, annualSalary, takeHomePaycheck
-        case taxRate, tithingRate, savingsRate, startingCash, firstBudgetMonth, categoryBudgets
+        case taxRate, tithingRate, savingsRate, startingCash, firstBudgetMonth, categoryBudgets, customCategories, hiddenBuiltInCategoryIDs
         case currentSavings, monthlySavingsContribution, savingsAPY, investmentBalance, monthlyInvestmentContribution
         case lowInvestmentReturn, baseInvestmentReturn, highInvestmentReturn
         case bigPurchaseName, bigPurchaseCost, bigPurchaseDate, debts
@@ -241,6 +316,8 @@ struct BudgetSettings: Codable {
         firstBudgetMonth = try values.decodeIfPresent(Date.self, forKey: .firstBudgetMonth)
             ?? Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
         categoryBudgets = try values.decodeIfPresent([String: Decimal].self, forKey: .categoryBudgets) ?? Self.defaultBudgets
+        customCategories = try values.decodeIfPresent([CustomBudgetCategory].self, forKey: .customCategories) ?? []
+        hiddenBuiltInCategoryIDs = try values.decodeIfPresent(Set<String>.self, forKey: .hiddenBuiltInCategoryIDs) ?? []
         currentSavings = try values.decodeIfPresent(Decimal.self, forKey: .currentSavings) ?? 5_000
         monthlySavingsContribution = try values.decodeIfPresent(Decimal.self, forKey: .monthlySavingsContribution) ?? 500
         savingsAPY = try values.decodeIfPresent(Decimal.self, forKey: .savingsAPY) ?? 0.04

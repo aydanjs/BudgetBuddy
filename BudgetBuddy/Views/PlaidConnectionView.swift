@@ -78,7 +78,7 @@ struct PlaidConnectionView: View {
                             }
                             if item.source.amount >= 0 {
                                 Picker("Category", selection: $item.category) {
-                                    ForEach(TransactionCategory.expenseCategories) { category in
+                                    ForEach(store.expenseCategories) { category in
                                         Text(category.rawValue).tag(category)
                                     }
                                 }
