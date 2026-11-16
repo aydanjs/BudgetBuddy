@@ -1,16 +1,16 @@
-# BudgetBuddy Access Control Policy
+# Turtle Budgeting Access Control Policy
 
-**Owner:** BudgetBuddy founder / security owner  
+**Owner:** Turtle Budgeting founder / security owner  
 **Effective date:** November 15, 2026  
 **Review cadence:** Quarterly and when a person joins or leaves the project.
 
 ## 1. Purpose
 
-This policy limits access to BudgetBuddy production systems and sensitive consumer financial data to authorized people who need that access to operate and maintain the service.
+This policy limits access to Turtle Budgeting production systems and sensitive consumer financial data to authorized people who need that access to operate and maintain the service.
 
 ## 2. Scope
 
-This policy applies to the BudgetBuddy iOS app, source code, GitHub repository, Render deployment, PostgreSQL database, Plaid Dashboard, Apple Developer account, and associated production secrets.
+This policy applies to the Turtle Budgeting iOS app, source code, GitHub repository, Render deployment, PostgreSQL database, Plaid Dashboard, Apple Developer account, and associated production secrets.
 
 ## 3. Access principles
 
@@ -32,7 +32,7 @@ This policy applies to the BudgetBuddy iOS app, source code, GitHub repository, 
 
 ## 5. Sensitive data and secrets
 
-- Bank credentials are entered only in Plaid Link. BudgetBuddy does not receive or store bank usernames or passwords.
+- Bank credentials are entered only in Plaid Link. Turtle Budgeting does not receive or store bank usernames or passwords.
 - Plaid access tokens are stored by the hosted API only in encrypted form using AES-256-GCM.
 - Secrets, including Plaid credentials, database connection strings, encryption keys, and session secrets, are stored only in protected hosting-provider environment settings.
 - Secrets must not be committed to Git, pasted into public issues, screenshots, or shared chat messages.
@@ -55,4 +55,4 @@ Exceptions must be approved in writing by the security owner and include a reaso
 
 ## 9. Acknowledgement
 
-Anyone with access to BudgetBuddy production systems must read and follow this policy.
+Anyone with access to Turtle Budgeting production systems must read and follow this policy.

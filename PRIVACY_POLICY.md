@@ -23,20 +23,20 @@ After a person gives permission in Plaid Link, Turtle Budgeting’s server store
 We share information only with service providers needed to operate the chosen features:
 
 - **Plaid**, to connect financial accounts and retrieve authorized financial data.
-- **Render**, to host BudgetBuddy’s bank-sync service and its database.
+- **Render**, to host Turtle Budgeting’s bank-sync service and its database.
 - **Apple**, to provide Sign in with Apple and device authentication.
 
-BudgetBuddy does not sell personal information or use linked financial data for advertising.
+Turtle Budgeting does not sell personal information or use linked financial data for advertising.
 
 ## Retention and deletion
 
 Budget information entered directly into the app remains on the iPhone until the person deletes it, resets the app’s local budget, or deletes the app.
 
-For bank sync, BudgetBuddy retains encrypted connection information and imported data while the online account remains active. A person can disconnect an individual bank at any time. They can also choose **Delete Online Account & Bank Data** in the app’s Privacy & Data settings; this removes their BudgetBuddy server account, bank connections, encrypted Plaid access tokens, consent records, and imported server-side transaction records.
+For bank sync, Turtle Budgeting retains encrypted connection information and imported data while the online account remains active. A person can disconnect an individual bank at any time. They can also choose **Delete Online Account & Bank Data** in the app’s Privacy & Data settings; this removes their Turtle Budgeting server account, bank connections, encrypted Plaid access tokens, consent records, and imported server-side transaction records.
 
 ## Security
 
-BudgetBuddy uses Apple Keychain for the device’s bank-sync session, encryption for Plaid access tokens stored by the server, and HTTPS/TLS for communication with the bank-sync service. No system is perfectly secure, so people should keep their devices protected and contact us promptly if they believe their account has been compromised.
+Turtle Budgeting uses Apple Keychain for the device’s bank-sync session, encryption for Plaid access tokens stored by the server, and HTTPS/TLS for communication with the bank-sync service. No system is perfectly secure, so people should keep their devices protected and contact us promptly if they believe their account has been compromised.
 
 ## Changes and contact
 

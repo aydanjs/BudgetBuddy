@@ -1,18 +1,18 @@
-# BudgetBuddy Information Security Policy
+# Turtle Budgeting Information Security Policy
 
-**Owner:** BudgetBuddy founder / security owner  
+**Owner:** Turtle Budgeting founder / security owner  
 **Effective date:** November 15, 2026  
 **Review cadence:** Every 12 months and before a material change to bank connectivity, authentication, hosting, or data handling.
 
 ## 1. Purpose and scope
 
-This policy explains how BudgetBuddy identifies, reduces, and monitors information-security risks while providing a personal budgeting app and optional bank connectivity through Plaid.
+This policy explains how Turtle Budgeting identifies, reduces, and monitors information-security risks while providing a personal budgeting app and optional bank connectivity through Plaid.
 
-It applies to the iOS app, the BudgetBuddy API, its PostgreSQL database, source code, deployment environment, and any person with access to those systems.
+It applies to the iOS app, the Turtle Budgeting API, its PostgreSQL database, source code, deployment environment, and any person with access to those systems.
 
 ## 2. Security owner and responsibilities
 
-The BudgetBuddy founder is the security owner. The security owner must:
+The Turtle Budgeting founder is the security owner. The security owner must:
 
 - review this policy on the cadence above;
 - keep access to GitHub, Render, Plaid, Apple Developer, and database services limited to people who need it;
@@ -22,16 +22,16 @@ The BudgetBuddy founder is the security owner. The security owner must:
 
 ## 3. Data handling
 
-BudgetBuddy minimizes the financial data it handles.
+Turtle Budgeting minimizes the financial data it handles.
 
 - Budget data entered manually is stored in the app's private local storage on the user's iPhone.
 - A user signs in to the bank-sync service with Sign in with Apple.
-- Bank usernames and passwords are entered only in Plaid Link and are never provided to or stored by BudgetBuddy.
+- Bank usernames and passwords are entered only in Plaid Link and are never provided to or stored by Turtle Budgeting.
 - The hosted API stores Plaid access tokens only in encrypted form using AES-256-GCM.
 - The service stores only the data needed for connected-bank features, such as Plaid Item records and imported transactions.
 - API session tokens are stored on the iPhone in the Keychain.
 
-BudgetBuddy does not sell bank data or use it for advertising.
+Turtle Budgeting does not sell bank data or use it for advertising.
 
 ## 4. Access control
 
@@ -75,7 +75,7 @@ If a security event is suspected, the security owner will:
 
 ## 8. Third-party services
 
-BudgetBuddy relies on third parties for specific functions:
+Turtle Budgeting relies on third parties for specific functions:
 
 - **Apple:** app distribution, Sign in with Apple, and TestFlight.
 - **Plaid:** financial-institution connection and permitted financial data access.

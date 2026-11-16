@@ -1,4 +1,4 @@
-# BudgetBuddy Security Review Log
+# Turtle Budgeting Security Review Log
 
 Use this log to record the checks required by `SECURITY_POLICY.md`. Do not mark a check complete until it has actually been performed.
 
