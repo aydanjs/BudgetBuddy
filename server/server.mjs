@@ -261,7 +261,14 @@ app.post("/api/exchange-public-token", requireUser, async (request, response) =>
 
 app.get("/api/connections", requireUser, async (request, response) => {
   const result = await pool.query("SELECT item_id, institution_name, error_code, created_at, updated_at FROM plaid_items WHERE user_id = $1 ORDER BY created_at", [request.userID]);
-  response.json({ connections: result.rows });
+  response.json({
+    connections: result.rows.map((item) => ({
+      itemID: item.item_id,
+      institutionName: item.institution_name,
+      errorCode: item.error_code,
+      updatedAt: item.updated_at,
+    })),
+  });
 });
 
 app.get("/api/live-summary", requireUser, async (request, response) => {

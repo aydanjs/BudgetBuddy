@@ -709,13 +709,6 @@ struct PlaidBankConnection: Decodable, Identifiable {
     let errorCode: String?
     let updatedAt: String?
 
-    enum CodingKeys: String, CodingKey {
-        case itemID = "item_id"
-        case institutionName
-        case errorCode
-        case updatedAt
-    }
-
     var id: String { itemID }
 
     var lastUpdatedText: String {
