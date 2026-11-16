@@ -10,7 +10,7 @@ struct BudgetView: View {
                 DatePicker("Month", selection: $selectedMonth, displayedComponents: [.date])
                     .datePickerStyle(.compact)
                 HStack {
-                    BudgetTotal(title: "Planned", value: store.totalPlannedSpending, color: .indigo)
+                    BudgetTotal(title: "Planned", value: store.totalPlannedSpending, color: .budgetBuddyBlue)
                     BudgetTotal(title: "Actual", value: store.actualSpending(in: selectedMonth), color: .orange)
                 }
             }
@@ -26,13 +26,13 @@ struct BudgetView: View {
             Section("Savings") {
                 LabeledContent("Available after budget") {
                     Text(store.plannedSavings, format: .currency(code: currencyCode))
-                        .foregroundStyle(store.plannedSavings >= 0 ? .green : .red).bold()
+                        .foregroundStyle(store.plannedSavings >= 0 ? Color.budgetBuddyGreen : .red).bold()
                 }
                 LabeledContent("Savings goal") {
                     Text(store.savingsGoal, format: .currency(code: currencyCode)).bold()
                 }
                 ProgressView(value: savingsProgress)
-                    .tint(store.plannedSavings >= store.savingsGoal ? .green : .orange)
+                    .tint(store.plannedSavings >= store.savingsGoal ? .budgetBuddyGreen : .orange)
                 Text("Your savings goal rate is editable in Settings. Available savings is what remains after planned spending and tithing.")
                     .font(.caption).foregroundStyle(.secondary)
             }
@@ -41,7 +41,9 @@ struct BudgetView: View {
     }
 
     private func categories(in group: BudgetGroup) -> [TransactionCategory] {
-        TransactionCategory.expenseCategories.filter { $0.group == group }
+        TransactionCategory.expenseCategories.filter {
+            $0.group == group && !($0 == .rent && store.settings.housingType == .neither)
+        }
     }
 
     private var savingsProgress: Double {
@@ -66,6 +68,7 @@ private struct BudgetCategoryRow: View {
     @EnvironmentObject private var store: TransactionStore
     let category: TransactionCategory
     let month: Date
+    @State private var requestFocus = false
 
     private var budget: Decimal { store.budget(for: category) }
     private var actual: Decimal { store.actualSpending(for: category, in: month) }
@@ -77,20 +80,29 @@ private struct BudgetCategoryRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Label(category.rawValue, systemImage: category.symbol)
+                Label(category == .rent ? store.housingLabel : category.rawValue, systemImage: category.symbol)
                 Spacer()
-                if category == .tithing {
+                if category == .tithing || category == .debtPayment {
                     Text(budget, format: .currency(code: currencyCode)).bold()
                 } else {
-                    EditableDecimalField(value: Binding(get: { budget }, set: { store.setBudget($0, for: category) }), width: 90)
+                    EditableDecimalField(
+                        value: Binding(get: { budget }, set: { store.setBudget($0, for: category) }),
+                        width: 100,
+                        focusRequest: $requestFocus
+                    )
                 }
             }
-            ProgressView(value: progress).tint(actual > budget && budget > 0 ? .red : .indigo)
+            ProgressView(value: progress).tint(actual > budget && budget > 0 ? .red : .budgetBuddyBlue)
             HStack {
                 Text("Spent \(actual, format: .currency(code: currencyCode))")
                 Spacer()
                 Text(budget > 0 ? "\(max(0, budget - actual), format: .currency(code: currencyCode)) left" : "No budget set")
             }.font(.caption).foregroundStyle(.secondary)
-        }.padding(.vertical, 4)
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if category != .tithing && category != .debtPayment { requestFocus = true }
+        }
     }
 }

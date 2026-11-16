@@ -7,3 +7,7 @@ xcuserdata/
 *.xcscmblueprint
 .env
 server/data/
+server/node_modules/
+.pnpm-store/
+tmp/
+output/

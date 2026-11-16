@@ -1,52 +1,360 @@
 // !$*UTF8*$!
 {
 	archiveVersion = 1;
-	classes = {};
-	objectVersion = 77;
-	objects = {
-		B00000000000000000000001 = {isa = PBXBuildFile; fileRef = C00000000000000000000001;};
-		B00000000000000000000002 = {isa = PBXBuildFile; fileRef = C00000000000000000000002;};
-		B00000000000000000000003 = {isa = PBXBuildFile; fileRef = C00000000000000000000003;};
-		B00000000000000000000004 = {isa = PBXBuildFile; fileRef = C00000000000000000000004;};
-		B00000000000000000000005 = {isa = PBXBuildFile; fileRef = C00000000000000000000005;};
-		B00000000000000000000006 = {isa = PBXBuildFile; fileRef = C00000000000000000000006;};
-		B00000000000000000000007 = {isa = PBXBuildFile; fileRef = C00000000000000000000007;};
-		B00000000000000000000008 = {isa = PBXBuildFile; fileRef = C00000000000000000000008;};
-		B00000000000000000000009 = {isa = PBXBuildFile; fileRef = C00000000000000000000009;};
-		B00000000000000000000010 = {isa = PBXBuildFile; fileRef = C00000000000000000000010;};
-		B00000000000000000000011 = {isa = PBXBuildFile; fileRef = C00000000000000000000011;};
-		E00000000000000000000003 = {isa = PBXBuildFile; productRef = E00000000000000000000002;};
-		C00000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetBuddyApp.swift; sourceTree = "<group>";};
-		C00000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>";};
-		C00000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>";};
-		C00000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionStore.swift; sourceTree = "<group>";};
-		C00000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>";};
-		C00000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionListView.swift; sourceTree = "<group>";};
-		C00000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionView.swift; sourceTree = "<group>";};
-		C00000000000000000000008 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>";};
-		C00000000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetView.swift; sourceTree = "<group>";};
-		C00000000000000000000010 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>";};
-		C00000000000000000000011 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidConnectionView.swift; sourceTree = "<group>";};
-		A00000000000000000000001 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 2720; LastUpgradeCheck = 2720; TargetAttributes = {A00000000000000000000002 = {CreatedOnToolsVersion = 27.2;};};}; buildConfigurationList = A00000000000000000000003; compatibilityVersion = "Xcode 16.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = A00000000000000000000004; packageReferences = (E00000000000000000000001); productRefGroup = A00000000000000000000005; projectDirPath = ""; projectRoot = ""; targets = (A00000000000000000000002);};
-		A00000000000000000000002 = {isa = PBXNativeTarget; buildConfigurationList = A00000000000000000000006; buildPhases = (A00000000000000000000007, A00000000000000000000008, A00000000000000000000009); buildRules = (); dependencies = (); name = BudgetBuddy; packageProductDependencies = (E00000000000000000000002); productName = BudgetBuddy; productReference = A00000000000000000000010; productType = "com.apple.product-type.application";};
-		A00000000000000000000003 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000011, A00000000000000000000012); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
-		A00000000000000000000004 = {isa = PBXGroup; children = (A00000000000000000000013, A00000000000000000000005); sourceTree = "<group>";};
-		A00000000000000000000005 = {isa = PBXGroup; children = (A00000000000000000000010); name = Products; sourceTree = "<group>";};
-		A00000000000000000000006 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000014, A00000000000000000000015); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
-		A00000000000000000000007 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B00000000000000000000001, B00000000000000000000002, B00000000000000000000003, B00000000000000000000004, B00000000000000000000005, B00000000000000000000006, B00000000000000000000007, B00000000000000000000009, B00000000000000000000010, B00000000000000000000011); runOnlyForDeploymentPostprocessing = 0;};
-		A00000000000000000000008 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (E00000000000000000000003); runOnlyForDeploymentPostprocessing = 0;};
-		A00000000000000000000009 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (B00000000000000000000008); runOnlyForDeploymentPostprocessing = 0;};
-		A00000000000000000000010 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BudgetBuddy.app; sourceTree = BUILT_PRODUCTS_DIR;};
-		A00000000000000000000011 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; CLANG_WARN_DOCUMENTATION_COMMENTS = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_C_LANGUAGE_STANDARD = gnu17; GCC_OPTIMIZATION_LEVEL = 0; ONLY_ACTIVE_ARCH = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; SWIFT_OPTIMIZATION_LEVEL = "-Onone";}; name = Debug;};
-		A00000000000000000000012 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; COPY_PHASE_STRIP = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; GCC_C_LANGUAGE_STANDARD = gnu17; SWIFT_COMPILATION_MODE = wholemodule; VALIDATE_PRODUCT = YES;}; name = Release;};
-		A00000000000000000000013 = {isa = PBXGroup; children = (C00000000000000000000001, C00000000000000000000002, D00000000000000000000001, D00000000000000000000002, D00000000000000000000003, C00000000000000000000008); path = BudgetBuddy; sourceTree = "<group>";};
-		D00000000000000000000001 = {isa = PBXGroup; children = (C00000000000000000000003); path = Models; sourceTree = "<group>";};
-		D00000000000000000000002 = {isa = PBXGroup; children = (C00000000000000000000004); path = Stores; sourceTree = "<group>";};
-		D00000000000000000000003 = {isa = PBXGroup; children = (C00000000000000000000005, C00000000000000000000009, C00000000000000000000010, C00000000000000000000011, C00000000000000000000006, C00000000000000000000007); path = Views; sourceTree = "<group>";};
-		E00000000000000000000001 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/plaid/plaid-link-ios-spm.git"; requirement = {kind = upToNextMajorVersion; minimumVersion = 6.5.8;};};
-		E00000000000000000000002 = {isa = XCSwiftPackageProductDependency; package = E00000000000000000000001; productName = LinkKit;};
-		A00000000000000000000014 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = ""; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_FILE = BudgetBuddy/Info.plist; INFOPLIST_KEY_CFBundleDisplayName = BudgetBuddy; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance"; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.BudgetBuddy; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1;}; name = Debug;};
-		A00000000000000000000015 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = ""; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_FILE = BudgetBuddy/Info.plist; INFOPLIST_KEY_CFBundleDisplayName = BudgetBuddy; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance"; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.BudgetBuddy; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1;}; name = Release;};
+	classes = {
 	};
-	rootObject = A00000000000000000000001;
+	objectVersion = 71;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B00000000000000000000001 /* BudgetBuddyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000001 /* BudgetBuddyApp.swift */; };
+		B00000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* ContentView.swift */; };
+		B00000000000000000000003 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* Transaction.swift */; };
+		B00000000000000000000004 /* TransactionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000004 /* TransactionStore.swift */; };
+		B00000000000000000000005 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000005 /* DashboardView.swift */; };
+		B00000000000000000000006 /* TransactionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000006 /* TransactionListView.swift */; };
+		B00000000000000000000007 /* AddTransactionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000007 /* AddTransactionView.swift */; };
+		B00000000000000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000008 /* Assets.xcassets */; };
+		B00000000000000000000009 /* BudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000009 /* BudgetView.swift */; };
+		B00000000000000000000010 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000010 /* SettingsView.swift */; };
+		B00000000000000000000011 /* PlaidConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* PlaidConnectionView.swift */; };
+		B00000000000000000000012 /* ForecastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000012 /* ForecastView.swift */; };
+		B00000000000000000000013 /* AuthSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* AuthSessionStore.swift */; };
+		B00000000000000000000014 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000014 /* WelcomeView.swift */; };
+		E00000000000000000000003 /* LinkKit in Frameworks */ = {isa = PBXBuildFile; productRef = E00000000000000000000002 /* LinkKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000010 /* BudgetBuddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BudgetBuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C00000000000000000000001 /* BudgetBuddyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetBuddyApp.swift; sourceTree = "<group>"; };
+		C00000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		C00000000000000000000003 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		C00000000000000000000004 /* TransactionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionStore.swift; sourceTree = "<group>"; };
+		C00000000000000000000005 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		C00000000000000000000006 /* TransactionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionListView.swift; sourceTree = "<group>"; };
+		C00000000000000000000007 /* AddTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionView.swift; sourceTree = "<group>"; };
+		C00000000000000000000008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C00000000000000000000009 /* BudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetView.swift; sourceTree = "<group>"; };
+		C00000000000000000000010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C00000000000000000000011 /* PlaidConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidConnectionView.swift; sourceTree = "<group>"; };
+		C00000000000000000000012 /* ForecastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastView.swift; sourceTree = "<group>"; };
+		C00000000000000000000013 /* AuthSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSessionStore.swift; sourceTree = "<group>"; };
+		C00000000000000000000014 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E00000000000000000000003 /* LinkKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000004 = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000013 /* BudgetBuddy */,
+				A00000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000010 /* BudgetBuddy.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000013 /* BudgetBuddy */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000001 /* BudgetBuddyApp.swift */,
+				C00000000000000000000002 /* ContentView.swift */,
+				D00000000000000000000001 /* Models */,
+				D00000000000000000000002 /* Stores */,
+				D00000000000000000000003 /* Views */,
+				C00000000000000000000008 /* Assets.xcassets */,
+			);
+			path = BudgetBuddy;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000001 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000003 /* Transaction.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000002 /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000004 /* TransactionStore.swift */,
+				C00000000000000000000013 /* AuthSessionStore.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000003 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000005 /* DashboardView.swift */,
+				C00000000000000000000009 /* BudgetView.swift */,
+				C00000000000000000000010 /* SettingsView.swift */,
+				C00000000000000000000011 /* PlaidConnectionView.swift */,
+				C00000000000000000000012 /* ForecastView.swift */,
+				C00000000000000000000014 /* WelcomeView.swift */,
+				C00000000000000000000006 /* TransactionListView.swift */,
+				C00000000000000000000007 /* AddTransactionView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000002 /* BudgetBuddy */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000006 /* Build configuration list for PBXNativeTarget "BudgetBuddy" */;
+			buildPhases = (
+				A00000000000000000000007 /* Sources */,
+				A00000000000000000000008 /* Frameworks */,
+				A00000000000000000000009 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BudgetBuddy;
+			packageProductDependencies = (
+				E00000000000000000000002 /* LinkKit */,
+			);
+			productName = BudgetBuddy;
+			productReference = A00000000000000000000010 /* BudgetBuddy.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2720;
+				LastUpgradeCheck = 2720;
+				TargetAttributes = {
+					A00000000000000000000002 = {
+						CreatedOnToolsVersion = 27.2;
+						SystemCapabilities = {
+							com.apple.SignInWithApple = {
+								enabled = 1;
+							};
+						};
+					};
+				};
+			};
+			buildConfigurationList = A00000000000000000000003 /* Build configuration list for PBXProject "BudgetBuddy" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A00000000000000000000004;
+			packageReferences = (
+				E00000000000000000000001 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */,
+			);
+			productRefGroup = A00000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A00000000000000000000002 /* BudgetBuddy */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A00000000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000008 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000001 /* BudgetBuddyApp.swift in Sources */,
+				B00000000000000000000002 /* ContentView.swift in Sources */,
+				B00000000000000000000003 /* Transaction.swift in Sources */,
+				B00000000000000000000004 /* TransactionStore.swift in Sources */,
+				B00000000000000000000005 /* DashboardView.swift in Sources */,
+				B00000000000000000000006 /* TransactionListView.swift in Sources */,
+				B00000000000000000000007 /* AddTransactionView.swift in Sources */,
+				B00000000000000000000009 /* BudgetView.swift in Sources */,
+				B00000000000000000000010 /* SettingsView.swift in Sources */,
+				B00000000000000000000011 /* PlaidConnectionView.swift in Sources */,
+				B00000000000000000000012 /* ForecastView.swift in Sources */,
+				B00000000000000000000013 /* AuthSessionStore.swift in Sources */,
+				B00000000000000000000014 /* WelcomeView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A00000000000000000000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A00000000000000000000014 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = BudgetBuddy/BudgetBuddy.entitlements;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7YMG42N8HD;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BudgetBuddy/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Turtle Budgeting";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aydanjs.BudgetBuddyFinance;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A00000000000000000000015 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = BudgetBuddy/BudgetBuddy.entitlements;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7YMG42N8HD;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BudgetBuddy/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Turtle Budgeting";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aydanjs.BudgetBuddyFinance;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000003 /* Build configuration list for PBXProject "BudgetBuddy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000011 /* Debug */,
+				A00000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000006 /* Build configuration list for PBXNativeTarget "BudgetBuddy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000014 /* Debug */,
+				A00000000000000000000015 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E00000000000000000000001 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/plaid/plaid-link-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E00000000000000000000002 /* LinkKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E00000000000000000000001 /* XCRemoteSwiftPackageReference "plaid-link-ios-spm" */;
+			productName = LinkKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A00000000000000000000001 /* Project object */;
 }
