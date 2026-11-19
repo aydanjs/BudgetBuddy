@@ -51,6 +51,22 @@ function decrypt(value) {
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
 }
 
+function calendarDateKey(date, requestedTimeZone) {
+  let timeZone = requestedTimeZone || "UTC";
+  try {
+    // Validate the device-provided IANA identifier before using it.
+    new Intl.DateTimeFormat("en-CA", { timeZone }).format(date);
+  } catch {
+    timeZone = "UTC";
+  }
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 async function plaid(path, body) {
   const response = await fetch(`${config.plaidBaseURL}${path}`, {
     method: "POST",
@@ -251,11 +267,29 @@ app.post("/api/create-link-token", requireUser, async (request, response) => {
 app.post("/api/exchange-public-token", requireUser, async (request, response) => {
   if (!request.body.public_token) return response.status(400).json({ error: "Missing public token." });
   const data = await plaid("/item/public_token/exchange", { public_token: request.body.public_token });
-  await pool.query(
-    `INSERT INTO plaid_items (item_id, user_id, access_token_encrypted) VALUES ($1, $2, $3)
-     ON CONFLICT (item_id) DO UPDATE SET access_token_encrypted = EXCLUDED.access_token_encrypted, updated_at = now()`,
-    [data.item_id, request.userID, encrypt(data.access_token)],
+  let institutionName = null;
+  try {
+    const item = await plaid("/item/get", { access_token: data.access_token });
+    if (item.item?.institution_id) {
+      const institution = await plaid("/institutions/get_by_id", { institution_id: item.item.institution_id, country_codes: ["US"] });
+      institutionName = institution.institution?.name || null;
+    }
+  } catch (error) {
+    console.error("Institution name lookup unavailable", error.plaid || error.message);
+  }
+
+  const saved = await pool.query(
+    `INSERT INTO plaid_items (item_id, user_id, access_token_encrypted, institution_name) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (item_id) DO UPDATE SET access_token_encrypted = EXCLUDED.access_token_encrypted,
+     institution_name = COALESCE(EXCLUDED.institution_name, plaid_items.institution_name), updated_at = now()
+     WHERE plaid_items.user_id = EXCLUDED.user_id RETURNING item_id`,
+    [data.item_id, request.userID, encrypt(data.access_token), institutionName],
   );
+  if (!saved.rowCount) {
+    try { await plaid("/item/remove", { access_token: data.access_token }); } catch { /* Best-effort cleanup. */ }
+    return response.status(409).json({ error: "This bank connection belongs to another Turtle Budgeting account." });
+  }
+  await pool.query("DELETE FROM live_balance_cache WHERE user_id = $1", [request.userID]);
   response.json({ connected: true, item_id: data.item_id });
 });
 
@@ -272,10 +306,20 @@ app.get("/api/connections", requireUser, async (request, response) => {
 });
 
 app.get("/api/live-summary", requireUser, async (request, response) => {
+  const userTimeZone = request.get("X-User-Time-Zone") || "UTC";
+  const cached = await pool.query(
+    "SELECT summary_json, retrieved_at, user_timezone FROM live_balance_cache WHERE user_id = $1",
+    [request.userID],
+  );
+  const cacheTimeZone = cached.rows[0]?.user_timezone || userTimeZone;
+  if (cached.rowCount && calendarDateKey(new Date(cached.rows[0].retrieved_at), cacheTimeZone) === calendarDateKey(new Date(), cacheTimeZone)) {
+    return response.json(cached.rows[0].summary_json);
+  }
+
   const items = await pool.query("SELECT * FROM plaid_items WHERE user_id = $1", [request.userID]);
   if (!items.rowCount) return response.status(409).json({ error: "Connect a bank first." });
   const summaries = await Promise.all(items.rows.map(liveSummaryForItem));
-  response.json({
+  const summary = {
     cash_total: total(summaries.map((summary) => summary.cash)),
     investments_total: summaries.some((summary) => summary.investmentsAvailable) ? total(summaries.map((summary) => summary.investments)) : null,
     liabilities_total: summaries.some((summary) => summary.liabilitiesAvailable) ? total(summaries.map((summary) => summary.liabilities)) : null,
@@ -284,7 +328,28 @@ app.get("/api/live-summary", requireUser, async (request, response) => {
     liabilities_available: summaries.some((summary) => summary.liabilitiesAvailable),
     portfolio_products_enabled: config.portfolioProductsEnabled,
     retrieved_at: new Date().toISOString(),
-  });
+  };
+  if (summary.balance_available) {
+    await pool.query(
+      `INSERT INTO live_balance_cache (user_id, summary_json, retrieved_at, user_timezone) VALUES ($1, $2, now(), $3)
+       ON CONFLICT (user_id) DO UPDATE SET summary_json = EXCLUDED.summary_json, retrieved_at = now(), user_timezone = EXCLUDED.user_timezone`,
+      [request.userID, summary, userTimeZone],
+    );
+  }
+  response.json(summary);
+});
+
+app.get("/api/live-summary-status", requireUser, async (request, response) => {
+  const cached = await pool.query(
+    "SELECT summary_json, retrieved_at, user_timezone FROM live_balance_cache WHERE user_id = $1",
+    [request.userID],
+  );
+  if (!cached.rowCount) return response.sendStatus(204);
+  const cacheTimeZone = cached.rows[0].user_timezone || "UTC";
+  if (calendarDateKey(new Date(cached.rows[0].retrieved_at), cacheTimeZone) !== calendarDateKey(new Date(), cacheTimeZone)) {
+    return response.sendStatus(204);
+  }
+  response.json(cached.rows[0].summary_json);
 });
 
 app.post("/api/transactions-sync", requireUser, async (request, response) => {
@@ -300,6 +365,7 @@ app.delete("/api/connections/:itemID", requireUser, async (request, response) =>
   if (!result.rowCount) return response.sendStatus(404);
   await plaid("/item/remove", { access_token: decrypt(result.rows[0].access_token_encrypted) });
   await pool.query("DELETE FROM plaid_items WHERE item_id = $1 AND user_id = $2", [request.params.itemID, request.userID]);
+  await pool.query("DELETE FROM live_balance_cache WHERE user_id = $1", [request.userID]);
   response.sendStatus(204);
 });
 

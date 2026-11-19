@@ -1,5 +1,13 @@
 import Foundation
 
+enum ContributionPlanMode: String, Codable, CaseIterable, Identifiable {
+    case automaticRemainder = "What is left"
+    case percentage = "Percent of income"
+    case fixedAmount = "Fixed amount"
+
+    var id: String { rawValue }
+}
+
 enum BudgetGroup: String, Codable, CaseIterable, Identifiable {
     case needs = "Needs"
     case wants = "Wants"
@@ -87,7 +95,7 @@ enum TransactionCategory: Codable, Hashable, Identifiable {
 
     static let expenseCategories: [TransactionCategory] = [
         .rent, .college, .car, .insurance, .groceries, .hygiene, .laundry, .gas, .other,
-        .fastFood, .fun, .gifts, .dates, .bigPurchase, .tithing, .debtPayment
+        .fastFood, .fun, .gifts, .dates, .tithing, .debtPayment
     ]
 
     private struct CustomPayload: Codable {
@@ -222,6 +230,53 @@ struct NetWorthSnapshot: Identifiable, Codable {
     }
 }
 
+struct SavingsGoal: Identifiable, Codable, Hashable {
+    var id = UUID()
+    var name: String = ""
+    var targetAmount: Decimal = 0
+    var targetDate: Date = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
+    var savedAmount: Decimal = 0
+    var deductFromForecast = true
+
+    var remainingAmount: Decimal { max(0, targetAmount - savedAmount) }
+    var progress: Double {
+        guard targetAmount > 0 else { return 0 }
+        return min(1, max(0, NSDecimalNumber(decimal: savedAmount / targetAmount).doubleValue))
+    }
+
+    init(
+        id: UUID = UUID(),
+        name: String = "",
+        targetAmount: Decimal = 0,
+        targetDate: Date = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date(),
+        savedAmount: Decimal = 0,
+        deductFromForecast: Bool = true
+    ) {
+        self.id = id
+        self.name = name
+        self.targetAmount = targetAmount
+        self.targetDate = targetDate
+        self.savedAmount = savedAmount
+        self.deductFromForecast = deductFromForecast
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, targetAmount, targetDate, savedAmount, deductFromForecast
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try values.decodeIfPresent(String.self, forKey: .name) ?? ""
+        targetAmount = try values.decodeIfPresent(Decimal.self, forKey: .targetAmount) ?? 0
+        targetDate = try values.decodeIfPresent(Date.self, forKey: .targetDate)
+            ?? Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
+        savedAmount = try values.decodeIfPresent(Decimal.self, forKey: .savedAmount) ?? 0
+        // Existing goals began as planned purchases, so they keep affecting the forecast after migration.
+        deductFromForecast = try values.decodeIfPresent(Bool.self, forKey: .deductFromForecast) ?? true
+    }
+}
+
 enum IncomeType: String, Codable, CaseIterable, Identifiable {
     case hourly = "Hourly"
     case salary = "Annual Salary"
@@ -272,7 +327,8 @@ struct BudgetSettings: Codable {
     var annualSalary: Decimal = 0
     var takeHomePaycheck: Decimal = 0
     var taxRate: Decimal = 0
-    var tithingRate: Decimal = 0
+    var tithingEnabled = false
+    var tithingRate: Decimal = 0.10
     var savingsRate: Decimal = 0
     var startingCash: Decimal = 0
     var firstBudgetMonth: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
@@ -280,13 +336,17 @@ struct BudgetSettings: Codable {
     var customCategories: [CustomBudgetCategory] = []
     var hiddenBuiltInCategoryIDs: Set<String> = []
     var currentSavings: Decimal = 0
+    var startingInvestmentBalance: Decimal = 0
     var monthlySavingsContribution: Decimal = 0
     var savingsAPY: Decimal = 0
     var investmentBalance: Decimal = 0
     var monthlyInvestmentContribution: Decimal = 0
-    var lowInvestmentReturn: Decimal = 0
-    var baseInvestmentReturn: Decimal = 0
-    var highInvestmentReturn: Decimal = 0
+    var savingsContributionMode: ContributionPlanMode = .automaticRemainder
+    var investmentContributionMode: ContributionPlanMode = .percentage
+    var investmentRate: Decimal = 0.05
+    var lowInvestmentReturn: Decimal = 0.04
+    var baseInvestmentReturn: Decimal = 0.08
+    var highInvestmentReturn: Decimal = 0.12
     var bigPurchaseName: String = ""
     var bigPurchaseCost: Decimal = 0
     var bigPurchaseDate: Date = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
@@ -295,16 +355,28 @@ struct BudgetSettings: Codable {
     var mortgageBalance: Decimal = 0
     var mortgageInterestRate: Decimal = 0
     var mortgageYearsRemaining: Decimal = 0
+    var housingDueDay: Int = 1
+    var balanceAnchorDate: Date = Date()
+    var lastLinkedCashBalance: Decimal?
+    var lastLinkedInvestmentBalance: Decimal?
+    var weeklyBudgetAllocations: [String: [Decimal]] = [:]
+    var savingsGoals: [SavingsGoal] = []
+    var emergencyMonthlyExpenses: Decimal = 0
+    var emergencyFundMonths: Int = 3
+    var emergencyFundSaved: Decimal = 0
 
     static let defaultBudgets: [String: Decimal] = [:]
 
     private enum CodingKeys: String, CodingKey {
         case incomeType, payFrequency, hourlyRate, scheduledHours, hoursPerWeek, annualSalary, takeHomePaycheck
-        case taxRate, tithingRate, savingsRate, startingCash, firstBudgetMonth, categoryBudgets, customCategories, hiddenBuiltInCategoryIDs
-        case currentSavings, monthlySavingsContribution, savingsAPY, investmentBalance, monthlyInvestmentContribution
+        case taxRate, tithingEnabled, tithingRate, savingsRate, startingCash, firstBudgetMonth, categoryBudgets, customCategories, hiddenBuiltInCategoryIDs
+        case currentSavings, startingInvestmentBalance, monthlySavingsContribution, savingsAPY, investmentBalance, monthlyInvestmentContribution
+        case savingsContributionMode, investmentContributionMode, investmentRate
         case lowInvestmentReturn, baseInvestmentReturn, highInvestmentReturn
         case bigPurchaseName, bigPurchaseCost, bigPurchaseDate, debts
         case housingType, mortgageBalance, mortgageInterestRate, mortgageYearsRemaining
+        case housingDueDay, balanceAnchorDate, lastLinkedCashBalance, lastLinkedInvestmentBalance, weeklyBudgetAllocations, savingsGoals
+        case emergencyMonthlyExpenses, emergencyFundMonths, emergencyFundSaved
     }
 
     private enum LegacyCodingKeys: String, CodingKey {
@@ -318,36 +390,45 @@ struct BudgetSettings: Codable {
         incomeType = try values.decodeIfPresent(IncomeType.self, forKey: .incomeType) ?? .hourly
         if incomeType == .paycheck { incomeType = .salary }
         payFrequency = try values.decodeIfPresent(PayFrequency.self, forKey: .payFrequency) ?? .biweekly
-        hourlyRate = try values.decodeIfPresent(Decimal.self, forKey: .hourlyRate) ?? 20
-        scheduledHours = try values.decodeIfPresent(Decimal.self, forKey: .scheduledHours) ?? 160
+        hourlyRate = try values.decodeIfPresent(Decimal.self, forKey: .hourlyRate) ?? 0
+        scheduledHours = try values.decodeIfPresent(Decimal.self, forKey: .scheduledHours) ?? 0
         hoursPerWeek = try values.decodeIfPresent(Decimal.self, forKey: .hoursPerWeek) ?? (scheduledHours / 4)
         annualSalary = try values.decodeIfPresent(Decimal.self, forKey: .annualSalary) ?? 0
         takeHomePaycheck = try values.decodeIfPresent(Decimal.self, forKey: .takeHomePaycheck) ?? 0
-        taxRate = try values.decodeIfPresent(Decimal.self, forKey: .taxRate) ?? 0.10
+        taxRate = try values.decodeIfPresent(Decimal.self, forKey: .taxRate) ?? 0
         if incomeType == .salary, takeHomePaycheck == 0, annualSalary > 0 {
             let estimatedMonthlyTakeHome = (annualSalary / 12) * (1 - taxRate)
             takeHomePaycheck = estimatedMonthlyTakeHome / payFrequency.paymentsPerMonth
         }
-        tithingRate = try values.decodeIfPresent(Decimal.self, forKey: .tithingRate) ?? 0.10
-        savingsRate = try values.decodeIfPresent(Decimal.self, forKey: .savingsRate) ?? 0.20
+        let previousTithingRate = try values.decodeIfPresent(Decimal.self, forKey: .tithingRate) ?? 0
+        tithingEnabled = try values.decodeIfPresent(Bool.self, forKey: .tithingEnabled) ?? (previousTithingRate > 0)
+        tithingRate = 0.10
+        savingsRate = try values.decodeIfPresent(Decimal.self, forKey: .savingsRate) ?? 0
         startingCash = try values.decodeIfPresent(Decimal.self, forKey: .startingCash) ?? 0
         firstBudgetMonth = try values.decodeIfPresent(Date.self, forKey: .firstBudgetMonth)
             ?? Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
         categoryBudgets = try values.decodeIfPresent([String: Decimal].self, forKey: .categoryBudgets) ?? Self.defaultBudgets
         customCategories = try values.decodeIfPresent([CustomBudgetCategory].self, forKey: .customCategories) ?? []
         hiddenBuiltInCategoryIDs = try values.decodeIfPresent(Set<String>.self, forKey: .hiddenBuiltInCategoryIDs) ?? []
-        currentSavings = try values.decodeIfPresent(Decimal.self, forKey: .currentSavings) ?? 5_000
-        monthlySavingsContribution = try values.decodeIfPresent(Decimal.self, forKey: .monthlySavingsContribution) ?? 500
-        savingsAPY = try values.decodeIfPresent(Decimal.self, forKey: .savingsAPY) ?? 0.04
-        investmentBalance = try values.decodeIfPresent(Decimal.self, forKey: .investmentBalance) ?? 2_000
-        monthlyInvestmentContribution = try values.decodeIfPresent(Decimal.self, forKey: .monthlyInvestmentContribution) ?? 200
+        currentSavings = try values.decodeIfPresent(Decimal.self, forKey: .currentSavings) ?? startingCash
+        if startingCash == 0, currentSavings > 0 { startingCash = currentSavings }
+        monthlySavingsContribution = try values.decodeIfPresent(Decimal.self, forKey: .monthlySavingsContribution) ?? 0
+        savingsAPY = try values.decodeIfPresent(Decimal.self, forKey: .savingsAPY) ?? 0
+        investmentBalance = try values.decodeIfPresent(Decimal.self, forKey: .investmentBalance) ?? 0
+        startingInvestmentBalance = try values.decodeIfPresent(Decimal.self, forKey: .startingInvestmentBalance) ?? investmentBalance
+        monthlyInvestmentContribution = try values.decodeIfPresent(Decimal.self, forKey: .monthlyInvestmentContribution) ?? 0
+        savingsContributionMode = try values.decodeIfPresent(ContributionPlanMode.self, forKey: .savingsContributionMode)
+            ?? (monthlySavingsContribution > 0 ? .fixedAmount : savingsRate > 0 ? .percentage : .automaticRemainder)
+        investmentContributionMode = try values.decodeIfPresent(ContributionPlanMode.self, forKey: .investmentContributionMode)
+            ?? (monthlyInvestmentContribution > 0 ? .fixedAmount : .percentage)
+        investmentRate = try values.decodeIfPresent(Decimal.self, forKey: .investmentRate) ?? 0.05
         let legacyValues = try decoder.container(keyedBy: LegacyCodingKeys.self)
         let previousReturn = try legacyValues.decodeIfPresent(Decimal.self, forKey: .expectedInvestmentReturn)
         lowInvestmentReturn = try values.decodeIfPresent(Decimal.self, forKey: .lowInvestmentReturn) ?? 0.04
         baseInvestmentReturn = try values.decodeIfPresent(Decimal.self, forKey: .baseInvestmentReturn) ?? previousReturn ?? 0.08
         highInvestmentReturn = try values.decodeIfPresent(Decimal.self, forKey: .highInvestmentReturn) ?? 0.12
-        bigPurchaseName = try values.decodeIfPresent(String.self, forKey: .bigPurchaseName) ?? "New car"
-        bigPurchaseCost = try values.decodeIfPresent(Decimal.self, forKey: .bigPurchaseCost) ?? 20_000
+        bigPurchaseName = try values.decodeIfPresent(String.self, forKey: .bigPurchaseName) ?? ""
+        bigPurchaseCost = try values.decodeIfPresent(Decimal.self, forKey: .bigPurchaseCost) ?? 0
         bigPurchaseDate = try values.decodeIfPresent(Date.self, forKey: .bigPurchaseDate)
             ?? Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
         debts = try values.decodeIfPresent([Debt].self, forKey: .debts) ?? []
@@ -355,5 +436,21 @@ struct BudgetSettings: Codable {
         mortgageBalance = try values.decodeIfPresent(Decimal.self, forKey: .mortgageBalance) ?? 0
         mortgageInterestRate = try values.decodeIfPresent(Decimal.self, forKey: .mortgageInterestRate) ?? 0
         mortgageYearsRemaining = try values.decodeIfPresent(Decimal.self, forKey: .mortgageYearsRemaining) ?? 0
+        housingDueDay = min(31, max(1, try values.decodeIfPresent(Int.self, forKey: .housingDueDay) ?? 1))
+        balanceAnchorDate = try values.decodeIfPresent(Date.self, forKey: .balanceAnchorDate) ?? firstBudgetMonth
+        lastLinkedCashBalance = try values.decodeIfPresent(Decimal.self, forKey: .lastLinkedCashBalance)
+        lastLinkedInvestmentBalance = try values.decodeIfPresent(Decimal.self, forKey: .lastLinkedInvestmentBalance)
+        weeklyBudgetAllocations = try values.decodeIfPresent([String: [Decimal]].self, forKey: .weeklyBudgetAllocations) ?? [:]
+        if let decodedGoals = try values.decodeIfPresent([SavingsGoal].self, forKey: .savingsGoals) {
+            savingsGoals = decodedGoals
+        } else if bigPurchaseCost > 0, !bigPurchaseName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            savingsGoals = [SavingsGoal(name: bigPurchaseName, targetAmount: bigPurchaseCost, targetDate: bigPurchaseDate)]
+        } else {
+            savingsGoals = []
+        }
+        emergencyMonthlyExpenses = try values.decodeIfPresent(Decimal.self, forKey: .emergencyMonthlyExpenses) ?? 0
+        let decodedEmergencyMonths = try values.decodeIfPresent(Int.self, forKey: .emergencyFundMonths) ?? 3
+        emergencyFundMonths = [3, 6, 12].contains(decodedEmergencyMonths) ? decodedEmergencyMonths : 3
+        emergencyFundSaved = try values.decodeIfPresent(Decimal.self, forKey: .emergencyFundSaved) ?? 0
     }
 }

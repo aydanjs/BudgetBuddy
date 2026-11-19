@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AddTransactionView: View {
     @EnvironmentObject private var store: TransactionStore
@@ -9,6 +10,7 @@ struct AddTransactionView: View {
     @State private var date: Date
     @State private var notes: String
     @State private var transactionType: TransactionEntryType
+    @State private var isAmountFocused = false
 
     init(transaction: Transaction? = nil) {
         self.transaction = transaction
@@ -38,7 +40,16 @@ struct AddTransactionView: View {
                 .pickerStyle(.segmented)
                 HStack {
                     Text(Locale.current.currencySymbol ?? "$").font(.title2).foregroundStyle(.secondary)
-                    TextField("0.00", text: $amount).font(.title2.bold()).keyboardType(.decimalPad)
+                    RightAlignedDecimalTextInput(
+                        text: $amount,
+                        isFirstResponder: $isAmountFocused,
+                        font: .systemFont(
+                            ofSize: UIFont.preferredFont(forTextStyle: .title2).pointSize,
+                            weight: .bold
+                        ),
+                        placeholder: "0.00"
+                    )
+                    .frame(minHeight: 32)
                 }
             }
             Section("Details") {

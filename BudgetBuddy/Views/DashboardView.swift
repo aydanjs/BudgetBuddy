@@ -1,15 +1,33 @@
 import Charts
 import SwiftUI
+import UIKit
 
 struct DashboardView: View {
     @EnvironmentObject private var store: TransactionStore
     @Binding var showingAddTransaction: Bool
     @Binding var selectedTab: AppTab
     @Binding var transactionMonth: Date?
+    @State private var showsInsightsTitle = true
 
     private var income: Decimal { store.actualIncome(in: Date()) }
     private var spending: Decimal { store.actualSpending(in: Date()) }
     private var remaining: Decimal { income - spending }
+    private var currentWeek: BudgetWeek? { store.currentWeek() }
+    private var currentWeekGoal: Decimal {
+        guard let currentWeek else { return 0 }
+        return store.weeklyFlexibleBudget(weekIndex: currentWeek.index, in: Date())
+    }
+    private var currentWeekSpent: Decimal {
+        guard let currentWeek else { return 0 }
+        return store.weeklyFlexibleSpending(weekIndex: currentWeek.index, in: Date())
+    }
+    private var currentWeekPace: Decimal {
+        guard let currentWeek else { return 0 }
+        let calendar = Calendar.current
+        let totalDays = (calendar.dateComponents([.day], from: currentWeek.start, to: currentWeek.end).day ?? 0) + 1
+        let elapsedDays = min(totalDays, max(1, (calendar.dateComponents([.day], from: currentWeek.start, to: Date()).day ?? 0) + 1))
+        return totalDays > 0 ? currentWeekGoal * Decimal(elapsedDays) / Decimal(totalDays) : currentWeekGoal
+    }
     private var budgetProgress: Double {
         guard store.totalPlannedSpending > 0 else { return 0 }
         return min(1, max(0, decimalDouble(spending / store.totalPlannedSpending)))
@@ -17,10 +35,16 @@ struct DashboardView: View {
 
     var body: some View {
         ScrollView {
+            DashboardScrollObserver(showsExpandedHeader: $showsInsightsTitle)
+                .frame(height: 1)
+
             VStack(alignment: .leading, spacing: 18) {
                 welcomeHeader
                 totalMoneyCard
                 monthSummary
+                weeklyGoalCard
+                emergencyFundCard
+                savingsGoalCard
                 budgetProgressCard
                 recentTransactions
             }
@@ -29,20 +53,36 @@ struct DashboardView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Dashboard")
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                NavigationLink {
-                    InsightsView(
-                        showingAddTransaction: $showingAddTransaction,
-                        selectedTab: $selectedTab,
-                        transactionMonth: $transactionMonth
-                    )
-                } label: {
-                    Label("Insights", systemImage: "chart.xyaxis.line")
+            if showsInsightsTitle {
+                ToolbarItem(placement: .topBarLeading) {
+                    insightsNavigationLink(showsTitle: true)
+                }
+            } else {
+                ToolbarItem(placement: .topBarLeading) {
+                    insightsNavigationLink(showsTitle: false)
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showingAddTransaction = true } label: { Image(systemName: "plus") }
             }
+        }
+    }
+
+    private func insightsNavigationLink(showsTitle: Bool) -> some View {
+        NavigationLink {
+            InsightsView(
+                showingAddTransaction: $showingAddTransaction,
+                selectedTab: $selectedTab,
+                transactionMonth: $transactionMonth
+            )
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chart.xyaxis.line")
+                if showsTitle {
+                    Text("Insights")
+                }
+            }
+            .accessibilityLabel("Insights")
         }
     }
 
@@ -70,10 +110,12 @@ struct DashboardView: View {
                     .font(.system(size: 38, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.7)
                 HStack(spacing: 18) {
-                    BalanceDetail(title: "Cash", amount: store.settings.currentSavings, symbol: "building.columns.fill")
-                    BalanceDetail(title: "Investments", amount: store.settings.investmentBalance, symbol: "chart.line.uptrend.xyaxis")
+                    BalanceDetail(title: "Cash", amount: store.currentCashBalance, symbol: "building.columns.fill")
+                    BalanceDetail(title: "Investments", amount: store.currentInvestmentBalance, symbol: "chart.line.uptrend.xyaxis")
                 }
-                Text("Recorded balances only · forecast returns are not included")
+                Text(store.settings.lastLinkedCashBalance == nil
+                     ? "Starting balances plus recorded income and expenses · forecast returns are not included"
+                     : "Latest linked cash balance plus your manual entries · imported bank activity is already included")
                     .font(.caption).foregroundStyle(.white.opacity(0.78))
             }
             .foregroundStyle(.white)
@@ -109,6 +151,110 @@ struct DashboardView: View {
             .padding(14)
             .background(.background, in: RoundedRectangle(cornerRadius: 14))
         }
+    }
+
+    private var weeklyGoalCard: some View {
+        Button { selectedTab = .budget } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label("This week's spending goal", systemImage: "calendar.badge.clock").font(.headline)
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.caption.bold())
+                }
+                if let currentWeek { Text(currentWeek.title).font(.caption).foregroundStyle(.secondary) }
+                ProgressView(value: weeklyProgress)
+                    .tint(currentWeekSpent <= currentWeekPace ? .budgetBuddyGreen : .orange)
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Spent").font(.caption).foregroundStyle(.secondary)
+                        Text(currentWeekSpent, format: .currency(code: currencyCode)).bold()
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing) {
+                        Text("Weekly goal").font(.caption).foregroundStyle(.secondary)
+                        Text(currentWeekGoal, format: .currency(code: currencyCode)).bold()
+                    }
+                }
+                Label(
+                    currentWeekSpent <= currentWeekPace ? "On track · \((currentWeekGoal - currentWeekSpent).currencyText) left this week" : "\((currentWeekSpent - currentWeekPace).currencyText) ahead of today's pace",
+                    systemImage: currentWeekSpent <= currentWeekPace ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
+                )
+                .font(.subheadline.bold())
+                .foregroundStyle(currentWeekSpent <= currentWeekPace ? Color.budgetBuddyGreen : .orange)
+            }
+            .padding()
+            .background(.background, in: RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var savingsGoalCard: some View {
+        if let goal = store.settings.savingsGoals.first {
+            Button { selectedTab = .plan } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label(goal.name, systemImage: "target").font(.headline)
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption.bold())
+                    }
+                    ProgressView(value: goal.progress).tint(.budgetBuddyGreen)
+                    HStack {
+                        Text("\(goal.savedAmount.currencyText) saved")
+                        Spacer()
+                        Text("\(goal.remainingAmount.currencyText) to go")
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
+                }
+                .padding()
+                .background(Color.budgetBuddyGreen.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var weeklyProgress: Double {
+        guard currentWeekGoal > 0 else { return currentWeekSpent > 0 ? 1 : 0 }
+        return min(1, max(0, decimalDouble(currentWeekSpent / currentWeekGoal)))
+    }
+
+    private var emergencyFundCard: some View {
+        Button { selectedTab = .plan } label: {
+            VStack(alignment: .leading, spacing: 11) {
+                HStack {
+                    Label("Emergency fund", systemImage: "cross.case.fill").font(.headline)
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.caption.bold())
+                }
+
+                if store.emergencyFundTarget > 0 {
+                    ProgressView(value: store.emergencyFundProgress)
+                        .tint(.budgetBuddyGreen)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Protected").font(.caption).foregroundStyle(.secondary)
+                            Text(store.settings.emergencyFundSaved, format: .currency(code: currencyCode)).bold()
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("\(store.settings.emergencyFundMonths)-month target").font(.caption).foregroundStyle(.secondary)
+                            Text(store.emergencyFundTarget, format: .currency(code: currencyCode)).bold()
+                        }
+                    }
+                    Text("\(store.emergencyFundRemaining.currencyText) left to build your safety net")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("Set a 3, 6, or 12-month safety target based on the expenses you need to live.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    Label("Set up your safety net", systemImage: "plus.circle.fill")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(Color.budgetBuddyGreen)
+                }
+            }
+            .padding()
+            .background(Color.budgetBuddyBlue.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
     }
 
     private var budgetProgressCard: some View {
@@ -150,6 +296,70 @@ struct DashboardView: View {
             }
             .padding(.horizontal)
             .background(.background, in: RoundedRectangle(cornerRadius: 16))
+        }
+    }
+}
+
+private struct DashboardScrollObserver: UIViewRepresentable {
+    @Binding var showsExpandedHeader: Bool
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(showsExpandedHeader: $showsExpandedHeader)
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.isUserInteractionEnabled = false
+        attachObserver(from: view, coordinator: context.coordinator)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.showsExpandedHeader = $showsExpandedHeader
+        attachObserver(from: uiView, coordinator: context.coordinator)
+    }
+
+    private func attachObserver(from view: UIView, coordinator: Coordinator) {
+        DispatchQueue.main.async {
+            var ancestor = view.superview
+            while let current = ancestor {
+                if let scrollView = current as? UIScrollView {
+                    coordinator.observe(scrollView)
+                    return
+                }
+                ancestor = current.superview
+            }
+        }
+    }
+
+    final class Coordinator {
+        var showsExpandedHeader: Binding<Bool>
+        private weak var scrollView: UIScrollView?
+        private var observation: NSKeyValueObservation?
+
+        init(showsExpandedHeader: Binding<Bool>) {
+            self.showsExpandedHeader = showsExpandedHeader
+        }
+
+        func observe(_ scrollView: UIScrollView) {
+            guard self.scrollView !== scrollView else { return }
+            observation?.invalidate()
+            self.scrollView = scrollView
+            observation = scrollView.observe(\.contentOffset, options: [.initial, .new]) { [weak self, weak scrollView] _, _ in
+                guard let self, let scrollView else { return }
+                let topOffset = -scrollView.adjustedContentInset.top
+                let shouldExpand = scrollView.contentOffset.y <= topOffset + 18
+                guard self.showsExpandedHeader.wrappedValue != shouldExpand else { return }
+                DispatchQueue.main.async {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        self.showsExpandedHeader.wrappedValue = shouldExpand
+                    }
+                }
+            }
+        }
+
+        deinit {
+            observation?.invalidate()
         }
     }
 }
@@ -310,7 +520,7 @@ struct InsightsView: View {
             .chartYAxis { AxisMarks(format: .currency(code: currencyCode).precision(.fractionLength(0))) }
             .chartXAxis { AxisMarks(values: .stride(by: .month)) { _ in AxisGridLine(); AxisTick(); AxisValueLabel(format: .dateTime.month(.abbreviated)) } }
             .frame(height: 170)
-            Text("Year to date · Turtle Budgeting records balance changes, and you can add earlier balances in History.")
+            Text("Calculated from your starting balances and every recorded income and expense.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -322,7 +532,7 @@ struct InsightsView: View {
                     CategoryComparisonRow(
                         category: category,
                         actual: average(of: { store.actualSpending(for: category, in: $0) }),
-                        budget: store.budget(for: category)
+                        budget: store.budget(for: category, in: selectedMonth)
                     )
                 }
             }
@@ -379,14 +589,14 @@ struct InsightsView: View {
     private var displayedCategories: [TransactionCategory] {
         store.expenseCategories.filter { category in
             category != .tithing && (
-                store.budget(for: category) > 0 || average(of: { store.actualSpending(for: category, in: $0) }) > 0
+                store.budget(for: category, in: selectedMonth) > 0 || average(of: { store.actualSpending(for: category, in: $0) }) > 0
             )
         }
     }
 
     private var yearToDateSnapshots: [NetWorthSnapshot] {
         let year = Calendar.current.component(.year, from: Date())
-        return store.netWorthSnapshots.filter { Calendar.current.component(.year, from: $0.date) == year }
+        return store.calculatedNetWorthSnapshots.filter { Calendar.current.component(.year, from: $0.date) == year }
     }
 
     private var recentItems: [Transaction] {
@@ -477,72 +687,36 @@ private func decimalDouble(_ value: Decimal) -> Double {
 
 struct NetWorthHistoryView: View {
     @EnvironmentObject private var store: TransactionStore
-    @State private var editingSnapshot: NetWorthSnapshot?
 
     var body: some View {
         List {
             Section {
-                ForEach(store.netWorthSnapshots.reversed()) { snapshot in
-                    Button {
-                        editingSnapshot = snapshot
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(snapshot.date, format: .dateTime.month(.abbreviated).day().year())
-                                Text("Cash \(snapshot.cash, format: .currency(code: currencyCode)) · Stocks \(snapshot.investments, format: .currency(code: currencyCode))")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text(snapshot.total, format: .currency(code: currencyCode)).bold()
+                ForEach(monthlyHistory.reversed()) { snapshot in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(snapshot.date, format: .dateTime.month(.wide).year())
+                            Text("Cash \(snapshot.cash, format: .currency(code: currencyCode)) · Investments \(snapshot.investments, format: .currency(code: currencyCode))")
+                                .font(.caption).foregroundStyle(.secondary)
                         }
+                        Spacer()
+                        Text(snapshot.total, format: .currency(code: currencyCode)).bold()
                     }
-                    .buttonStyle(.plain)
-                }
-                .onDelete { offsets in
-                    store.deleteNetWorthSnapshot(at: offsets, from: Array(store.netWorthSnapshots.reversed()))
                 }
             } footer: {
-                Text("Add earlier balances to build your year-to-date line. Future balance changes are recorded automatically.")
+                Text("These values are calculated automatically from your starting balances and transactions. Change the starting balance in Settings if the baseline is wrong.")
             }
         }
         .navigationTitle("Net Worth History")
-        .toolbar {
-            Button { editingSnapshot = NetWorthSnapshot(date: Date(), cash: 0, investments: 0) } label: {
-                Image(systemName: "plus")
-            }
-        }
-        .sheet(item: $editingSnapshot) { snapshot in
-            NetWorthEntryView(snapshot: snapshot)
-        }
     }
-}
 
-private struct NetWorthEntryView: View {
-    @EnvironmentObject private var store: TransactionStore
-    @Environment(\.dismiss) private var dismiss
-    @State var snapshot: NetWorthSnapshot
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                DatePicker("Date", selection: $snapshot.date, in: ...Date(), displayedComponents: .date)
-                LabeledContent("Cash / savings") {
-                    HStack { Text("$"); EditableDecimalField(value: $snapshot.cash, width: 100) }
-                }
-                LabeledContent("Stock investments") {
-                    HStack { Text("$"); EditableDecimalField(value: $snapshot.investments, width: 100) }
-                }
-                LabeledContent("Net worth") {
-                    Text(snapshot.total, format: .currency(code: currencyCode)).bold()
-                }
-            }
-            .navigationTitle("Balance Point")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { store.saveNetWorthSnapshot(snapshot); dismiss() }
-                }
-            }
+    private var monthlyHistory: [NetWorthSnapshot] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: store.calculatedNetWorthSnapshots) {
+            calendar.date(from: calendar.dateComponents([.year, .month], from: $0.date)) ?? $0.date
         }
+        return grouped.compactMap { month, values in
+            guard let last = values.max(by: { $0.date < $1.date }) else { return nil }
+            return NetWorthSnapshot(date: month, cash: last.cash, investments: last.investments)
+        }.sorted { $0.date < $1.date }
     }
 }

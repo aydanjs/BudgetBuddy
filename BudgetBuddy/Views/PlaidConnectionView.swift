@@ -44,9 +44,9 @@ struct PlaidConnectionView: View {
                 }
                 .disabled(model.isLoading || appAuth.serverSessionToken == nil)
 
-            if model.isConnected {
+                if model.isConnected {
                     Button {
-                        Task { await model.sync() }
+                        Task { await model.sync(excluding: importedExternalIDs) }
                     } label: {
                         Label("Sync Transactions", systemImage: "arrow.triangle.2.circlepath")
                     }
@@ -139,7 +139,7 @@ struct PlaidConnectionView: View {
                 onSuccess: { success in
                     isPresentingLink = false
                     model.linkSession = nil
-                    Task { await model.exchange(publicToken: success.publicToken) }
+                    Task { await model.exchange(publicToken: success.publicToken, excluding: importedExternalIDs) }
                 },
                 onExit: { exit in
                     isPresentingLink = false
@@ -174,6 +174,10 @@ struct PlaidConnectionView: View {
         let count = store.importTransactions(transactions)
         model.reviewItems.removeAll { $0.isSelected }
         importedMessage = count == 1 ? "Imported 1 transaction." : "Imported \(count) transactions."
+    }
+
+    private var importedExternalIDs: Set<String> {
+        Set(store.transactions.compactMap(\.externalID))
     }
 
 }
@@ -268,7 +272,7 @@ final class PlaidConnectionModel: ObservableObject {
         }
     }
 
-    func exchange(publicToken: String) async {
+    func exchange(publicToken: String, excluding knownTransactionIDs: Set<String> = []) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -276,19 +280,21 @@ final class PlaidConnectionModel: ObservableObject {
             let _: ExchangeResponse = try await post("/api/exchange-public-token", body: PublicTokenBody(publicToken: publicToken))
             isConnected = true
             await loadConnections()
-            await sync()
+            await sync(excluding: knownTransactionIDs)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    func sync() async {
+    func sync(excluding knownTransactionIDs: Set<String> = []) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
             let response: SyncResponse = try await post("/api/transactions-sync", body: EmptyBody())
-            reviewItems = response.added.filter { !$0.pending }.map { transaction in
+            reviewItems = response.added.filter {
+                !$0.pending && !knownTransactionIDs.contains($0.transactionID)
+            }.map { transaction in
                 PlaidReviewItem(
                     source: transaction,
                     category: Self.suggestedCategory(for: transaction),
@@ -452,7 +458,12 @@ struct ConnectedAccountsView: View {
         .refreshable { await model.loadConnections() }
         .onChange(of: appAuth.serverSessionToken) { _, token in
             model.sessionToken = token
-            if token != nil { Task { await model.loadConnections() } }
+            if token != nil {
+                Task {
+                    await model.loadConnections()
+                    await loadLiveStatus()
+                }
+            }
         }
         .onChange(of: model.sessionExpired) { _, expired in
             if expired { appAuth.clearExpiredServerSession() }
@@ -463,6 +474,7 @@ struct ConnectedAccountsView: View {
         .task {
             model.sessionToken = appAuth.serverSessionToken
             await model.loadConnections()
+            await loadLiveStatus()
         }
         .confirmationDialog(
             "Disconnect this bank?",
@@ -552,12 +564,18 @@ struct ConnectedAccountsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Button {
-                Task { await loadLiveValues() }
-            } label: {
-                Label("Load live values", systemImage: "arrow.clockwise.circle.fill")
+            TimelineView(.periodic(from: .now, by: 30)) { context in
+                let isLocked = liveSummary.summary?.wasRetrieved(onSameLocalDayAs: context.date) == true
+                Button {
+                    Task { await loadLiveValues() }
+                } label: {
+                    Label(
+                        isLocked ? "Locked until midnight" : "Load live values",
+                        systemImage: isLocked ? "lock.fill" : "arrow.clockwise.circle.fill"
+                    )
+                }
+                .disabled(liveSummary.isLoading || isLocked)
             }
-            .disabled(liveSummary.isLoading)
 
             if liveSummary.isLoading {
                 ProgressView("Loading live values…")
@@ -568,12 +586,21 @@ struct ConnectedAccountsView: View {
         } header: {
             Text("Live linked money")
         } footer: {
-            Text("Loading live values updates the cash total on your dashboard. Investments update only when Plaid returns approved investment data; debt remains informational.")
+            Text("Loading live values updates the cash total on your dashboard. To control Plaid costs, Turtle Budgeting makes at most one live Balance request per local calendar day. You can refresh again after midnight. Investments update only when Plaid returns approved investment data; debt remains informational.")
         }
     }
 
     private func loadLiveValues() async {
         await liveSummary.load(sessionToken: appAuth.serverSessionToken)
+        applyLiveSummary()
+    }
+
+    private func loadLiveStatus() async {
+        await liveSummary.loadCachedStatus(sessionToken: appAuth.serverSessionToken)
+        applyLiveSummary()
+    }
+
+    private func applyLiveSummary() {
         guard let summary = liveSummary.summary else { return }
 
         let cash = summary.balanceAvailable ? Decimal(summary.cashTotal) : nil
@@ -647,12 +674,14 @@ final class PlaidLiveSummaryModel: ObservableObject {
 
         isLoading = true
         errorMessage = nil
+        summary = nil
         defer { isLoading = false }
 
         do {
             var request = URLRequest(url: BudgetBuddyAPI.baseURL.appendingPathComponent("/api/live-summary"))
             request.httpMethod = "GET"
             request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
+            request.setValue(TimeZone.current.identifier, forHTTPHeaderField: "X-User-Time-Zone")
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
                 if (response as? HTTPURLResponse)?.statusCode == 401 { sessionExpired = true }
@@ -662,6 +691,30 @@ final class PlaidLiveSummaryModel: ObservableObject {
             summary = try JSONDecoder.plaid.decode(PlaidLiveSummary.self, from: data)
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func loadCachedStatus(sessionToken: String?) async {
+        guard let sessionToken else { return }
+
+        do {
+            var request = URLRequest(url: BudgetBuddyAPI.baseURL.appendingPathComponent("/api/live-summary-status"))
+            request.httpMethod = "GET"
+            request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return }
+            if http.statusCode == 204 {
+                summary = nil
+                return
+            }
+            if http.statusCode == 401 {
+                sessionExpired = true
+                return
+            }
+            guard 200..<300 ~= http.statusCode else { return }
+            summary = try JSONDecoder.plaid.decode(PlaidLiveSummary.self, from: data)
+        } catch {
+            // Status checks never block the user from requesting a fresh value.
         }
     }
 }
@@ -773,6 +826,13 @@ struct PlaidLiveSummary: Decodable {
         formatter.formatOptions.insert(.withFractionalSeconds)
         guard let date = formatter.date(from: retrievedAt) else { return "just now" }
         return date.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    func wasRetrieved(onSameLocalDayAs date: Date) -> Bool {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions.insert(.withFractionalSeconds)
+        guard let retrievedDate = formatter.date(from: retrievedAt) else { return false }
+        return Calendar.autoupdatingCurrent.isDate(retrievedDate, inSameDayAs: date)
     }
 }
 struct ServerError: Decodable { let error: String }

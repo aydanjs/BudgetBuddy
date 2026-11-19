@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject private var store: TransactionStore
@@ -27,10 +28,38 @@ struct SettingsView: View {
                 Picker("Paid", selection: payFrequencyBinding) {
                     ForEach(PayFrequency.allCases) { Text($0.rawValue).tag($0) }
                 }
-                PercentageSetting(title: "Savings goal rate", decimal: binding(\.savingsRate))
                 LabeledContent("Estimated monthly take-home") {
                     Text(store.plannedNetIncome, format: .currency(code: currencyCode)).bold()
                 }
+            }
+
+            Section("Monthly saving & investing") {
+                Picker("Cash savings plan", selection: savingsModeBinding) {
+                    ForEach(ContributionPlanMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
+                }
+                if store.settings.savingsContributionMode == .percentage {
+                    PercentageSetting(title: "Cash savings goal", decimal: binding(\.savingsRate))
+                } else if store.settings.savingsContributionMode == .fixedAmount {
+                    DecimalSetting(title: "Cash savings goal", value: binding(\.monthlySavingsContribution), prefix: "$")
+                }
+                LabeledContent("Planned cash savings") {
+                    Text(store.plannedSavingsContribution, format: .currency(code: currencyCode)).bold()
+                }
+
+                Picker("Investing plan", selection: investmentModeBinding) {
+                    Text(ContributionPlanMode.percentage.rawValue).tag(ContributionPlanMode.percentage)
+                    Text(ContributionPlanMode.fixedAmount.rawValue).tag(ContributionPlanMode.fixedAmount)
+                }
+                if store.settings.investmentContributionMode == .percentage {
+                    PercentageSetting(title: "Investing goal", decimal: binding(\.investmentRate))
+                } else {
+                    DecimalSetting(title: "Investing goal", value: binding(\.monthlyInvestmentContribution), prefix: "$")
+                }
+                LabeledContent("Planned investing") {
+                    Text(store.plannedInvestmentContribution, format: .currency(code: currencyCode)).bold()
+                }
+                Text("Percentage goals scale with expected income. ‘What is left’ calculates cash savings after planned expenses and investing.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Housing") {
@@ -52,12 +81,28 @@ struct SettingsView: View {
                     Text("No rent or mortgage payment will be included in your monthly plan.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                if store.settings.housingType != .neither {
+                    Picker("Payment due day", selection: housingDueDayBinding) {
+                        ForEach(1...31, id: \.self) { Text("Day \($0)").tag($0) }
+                    }
+                    Text("Your weekly plan shows this as a scheduled bill in the week it is due, not as flexible spending money.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
 
             Section("Household plan") {
-                PercentageSetting(title: "Tithing rate", decimal: binding(\.tithingRate))
-                DecimalSetting(title: "Starting cash", value: binding(\.startingCash), prefix: "$")
+                Toggle("Include tithing", isOn: tithingEnabledBinding)
+                if store.settings.tithingEnabled {
+                    LabeledContent("Tithing rate", value: "10% of monthly income")
+                    Text("Tithing builds from income recorded during each month. It becomes an expense only when you mark it paid in Budget.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                DecimalSetting(title: "Starting cash and savings", value: startingCashBinding, prefix: "$")
+                DecimalSetting(title: "Starting investments", value: startingInvestmentBinding, prefix: "$")
                 DatePicker("First budget month", selection: dateBinding, displayedComponents: .date)
+                Text("These are your setup baselines. Turtle Budgeting keeps them and adds income, subtracts expenses, and updates the same balances everywhere in the app.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Categories") {
@@ -69,6 +114,19 @@ struct SettingsView: View {
                 Text("Add your own categories, edit them later, or hide included categories you do not use. Past transactions keep their original labels.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            Section("Guidance") {
+                NavigationLink {
+                    EmergencyFundView()
+                } label: {
+                    Label("Emergency fund", systemImage: "cross.case.fill")
+                }
+                NavigationLink {
+                    BudgetAdviceView()
+                } label: {
+                    Label("Budgeting advice & help", systemImage: "questionmark.bubble.fill")
+                }
             }
 
             Section("Forecast assumptions") {
@@ -165,13 +223,63 @@ struct SettingsView: View {
         Binding(get: { store.settings.payFrequency }, set: { value in store.updateSettings { $0.payFrequency = value } })
     }
 
+    private var savingsModeBinding: Binding<ContributionPlanMode> {
+        Binding(get: { store.settings.savingsContributionMode }, set: { value in
+            store.updateSettings { $0.savingsContributionMode = value }
+        })
+    }
+
+    private var investmentModeBinding: Binding<ContributionPlanMode> {
+        Binding(get: { store.settings.investmentContributionMode }, set: { value in
+            store.updateSettings { $0.investmentContributionMode = value }
+        })
+    }
+
     private var housingTypeBinding: Binding<HousingType> {
         Binding(get: { store.settings.housingType }, set: { value in store.updateSettings { $0.housingType = value } })
+    }
+
+    private var tithingEnabledBinding: Binding<Bool> {
+        Binding(get: { store.settings.tithingEnabled }, set: { isEnabled in
+            store.updateSettings {
+                $0.tithingEnabled = isEnabled
+                $0.tithingRate = 0.10
+            }
+        })
     }
 
     private var housingPaymentBinding: Binding<Decimal> {
         Binding(get: { store.settings.categoryBudgets[TransactionCategory.rent.rawValue] ?? 0 },
                 set: { store.setBudget($0, for: .rent) })
+    }
+
+    private var housingDueDayBinding: Binding<Int> {
+        Binding(get: { store.settings.housingDueDay }, set: { value in
+            store.updateSettings { $0.housingDueDay = value }
+        })
+    }
+
+    private var startingCashBinding: Binding<Decimal> {
+        Binding(get: {
+            store.settings.lastLinkedCashBalance ?? store.settings.startingCash
+        }, set: { value in
+            store.updateSettings {
+                $0.currentSavings = max(0, value)
+                $0.startingCash = max(0, value)
+                $0.balanceAnchorDate = Calendar.current.startOfDay(for: Date())
+                $0.lastLinkedCashBalance = nil
+            }
+        })
+    }
+
+    private var startingInvestmentBinding: Binding<Decimal> {
+        Binding(get: { store.currentInvestmentBalance }, set: { value in
+            store.updateSettings {
+                $0.startingInvestmentBalance = max(0, value)
+                $0.investmentBalance = max(0, value)
+                $0.lastLinkedInvestmentBalance = nil
+            }
+        })
     }
 
     @ViewBuilder
@@ -180,6 +288,73 @@ struct SettingsView: View {
         Text("Enter the usual amount that reaches your bank account after taxes and deductions.")
             .font(.caption)
             .foregroundStyle(.secondary)
+    }
+}
+
+struct BudgetAdviceView: View {
+    private let supportEmail = "turtlebudgeting@gmail.com"
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("A steady starting order", systemImage: "tortoise.fill")
+                        .font(.title3.bold())
+                        .foregroundStyle(Color.budgetBuddyGreen)
+                    Text("Cover essentials, build an emergency fund, then assign money to other goals and long-term investments.")
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section("Simple habits") {
+                AdviceRow(symbol: "calendar", title: "Check in weekly", detail: "Small weekly adjustments are easier than fixing an entire month at once.")
+                AdviceRow(symbol: "cross.case", title: "Protect the basics", detail: "Work toward 3 months first, then consider 6 or 12 months of essential expenses.")
+                AdviceRow(symbol: "arrow.triangle.2.circlepath", title: "Update when life changes", detail: "Pay, housing, and priorities change. Your budget should change with them.")
+                AdviceRow(symbol: "chart.line.uptrend.xyaxis", title: "Treat forecasts as estimates", detail: "Investment returns and future costs are never guaranteed.")
+            }
+
+            Section("One possible starting framework") {
+                AdviceRow(symbol: "house.fill", title: "50% for needs", detail: "Housing, groceries, transportation, insurance, minimum debt payments, and other essentials.")
+                AdviceRow(symbol: "sparkles", title: "25% for wants", detail: "Flexible spending that makes life enjoyable but can be adjusted when needed.")
+                AdviceRow(symbol: "leaf.fill", title: "25% for your future", detail: "Emergency savings, other goals, and—if it fits your situation—a small long-term investing percentage.")
+                Text("50/25/25 is only a planning example, not a rule. Housing costs, income, debt, family needs, and life stage can make a different split more realistic. Starting smaller and increasing gradually still counts as progress.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Have a question?") {
+                Text("Send us a message and we will do our best to reply within a few days.")
+                Link(destination: URL(string: "mailto:\(supportEmail)?subject=Turtle%20Budgeting%20Question")!) {
+                    Label(supportEmail, systemImage: "envelope.fill")
+                }
+            }
+
+            Section {
+                Text("Turtle Budgeting provides general educational information, not individualized financial, investment, tax, or legal advice. Investing involves risk, including possible loss of principal. Consider your circumstances and, when appropriate, a qualified professional before making financial decisions.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle("Advice & Help")
+    }
+}
+
+private struct AdviceRow: View {
+    let symbol: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: symbol)
+                .foregroundStyle(Color.budgetBuddyBlue)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.headline)
+                Text(detail).font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 3)
     }
 }
 
@@ -411,7 +586,7 @@ struct EditableDecimalField: View {
     let width: CGFloat
     private var focusRequest: Binding<Bool>?
     @State private var text: String
-    @FocusState private var isFocused: Bool
+    @State private var isFocused = false
 
     init(value: Binding<Decimal>, width: CGFloat, focusRequest: Binding<Bool>? = nil) {
         _value = value
@@ -422,10 +597,7 @@ struct EditableDecimalField: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            TextField("0", text: $text)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .focused($isFocused)
+            RightAlignedDecimalTextInput(text: $text, isFirstResponder: $isFocused)
 
             if isFocused {
                 Button {
@@ -477,5 +649,71 @@ struct EditableDecimalField: View {
 
     private static func displayText(for value: Decimal) -> String {
         NSDecimalNumber(decimal: value).stringValue
+    }
+}
+
+/// UIKit gives us reliable cursor control that SwiftUI's TextField does not expose.
+/// Every numeric field begins editing at the far-right end of its current value.
+struct RightAlignedDecimalTextInput: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var isFirstResponder: Bool
+    var font: UIFont = .preferredFont(forTextStyle: .body)
+    var placeholder = "0"
+
+    func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
+
+    func makeUIView(context: Context) -> UITextField {
+        let field = UITextField()
+        field.delegate = context.coordinator
+        field.keyboardType = .decimalPad
+        field.textAlignment = .right
+        field.placeholder = placeholder
+        field.font = font
+        field.adjustsFontForContentSizeCategory = true
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        field.addTarget(context.coordinator, action: #selector(Coordinator.textChanged(_:)), for: .editingChanged)
+        return field
+    }
+
+    func updateUIView(_ field: UITextField, context: Context) {
+        context.coordinator.parent = self
+        if field.text != text { field.text = text }
+
+        if isFirstResponder, !field.isFirstResponder {
+            DispatchQueue.main.async {
+                field.becomeFirstResponder()
+                context.coordinator.moveCursorToEnd(in: field)
+            }
+        } else if !isFirstResponder, field.isFirstResponder {
+            field.resignFirstResponder()
+        }
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: RightAlignedDecimalTextInput
+
+        init(parent: RightAlignedDecimalTextInput) {
+            self.parent = parent
+        }
+
+        @objc func textChanged(_ field: UITextField) {
+            parent.text = field.text ?? ""
+        }
+
+        func textFieldDidBeginEditing(_ field: UITextField) {
+            parent.isFirstResponder = true
+            DispatchQueue.main.async { [weak self, weak field] in
+                guard let self, let field else { return }
+                self.moveCursorToEnd(in: field)
+            }
+        }
+
+        func textFieldDidEndEditing(_ field: UITextField) {
+            parent.isFirstResponder = false
+        }
+
+        func moveCursorToEnd(in field: UITextField) {
+            field.selectedTextRange = field.textRange(from: field.endOfDocument, to: field.endOfDocument)
+        }
     }
 }

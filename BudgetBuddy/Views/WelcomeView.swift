@@ -355,6 +355,13 @@ struct OnboardingView: View {
                         .foregroundStyle(Color.budgetBuddyGreen)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                if draft.housingType != .neither {
+                    Picker("Payment due day", selection: $draft.housingDueDay) {
+                        ForEach(1...31, id: \.self) { Text("Day \($0)").tag($0) }
+                    }
+                    Text("We will place this bill in the correct week without treating it as flexible weekly spending.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             .onboardingCard()
         }
@@ -374,9 +381,46 @@ struct OnboardingView: View {
             .onboardingCard()
 
             VStack(spacing: 18) {
-                OnboardingValueRow(title: "Monthly cash savings", value: $draft.monthlySavingsContribution, prefix: "$")
-                OnboardingValueRow(title: "Monthly investing", value: $draft.monthlyInvestmentContribution, prefix: "$")
-                OnboardingValueRow(title: "Savings goal from income", value: percentage($draft.savingsRate), suffix: "%")
+                Picker("Cash savings plan", selection: $draft.savingsContributionMode) {
+                    ForEach(ContributionPlanMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
+                }
+                if draft.savingsContributionMode == .percentage {
+                    OnboardingValueRow(title: "Save from income", value: percentage($draft.savingsRate), suffix: "%")
+                } else if draft.savingsContributionMode == .fixedAmount {
+                    OnboardingValueRow(title: "Monthly cash savings", value: $draft.monthlySavingsContribution, prefix: "$")
+                } else {
+                    Text("Cash savings will be calculated from expected income minus your planned expenses and investing goal.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
+                Picker("Investing plan", selection: $draft.investmentContributionMode) {
+                    Text(ContributionPlanMode.percentage.rawValue).tag(ContributionPlanMode.percentage)
+                    Text(ContributionPlanMode.fixedAmount.rawValue).tag(ContributionPlanMode.fixedAmount)
+                }
+                if draft.investmentContributionMode == .percentage {
+                    OnboardingValueRow(title: "Invest from income", value: percentage($draft.investmentRate), suffix: "%")
+                } else {
+                    OnboardingValueRow(title: "Monthly investing", value: $draft.monthlyInvestmentContribution, prefix: "$")
+                }
+            }
+            .onboardingCard()
+
+            VStack(alignment: .leading, spacing: 18) {
+                Label("Emergency fund foundation", systemImage: "cross.case.fill")
+                    .font(.headline)
+                    .foregroundStyle(Color.budgetBuddyGreen)
+                OnboardingValueRow(title: "Essential expenses each month", value: $draft.emergencyMonthlyExpenses, prefix: "$")
+                Picker("Months to protect", selection: $draft.emergencyFundMonths) {
+                    Text("3 months").tag(3)
+                    Text("6 months").tag(6)
+                    Text("12 months").tag(12)
+                }
+                .pickerStyle(.segmented)
+                LabeledContent("Safety target") {
+                    Text(draft.emergencyFundTarget, format: .currency(code: currencyCode)).bold()
+                }
+                Text("Include the basics you would still need if income stopped: housing, food, utilities, transportation, insurance, and minimum debt payments.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             .onboardingCard()
 
@@ -400,9 +444,11 @@ struct OnboardingView: View {
                 Divider()
                 OnboardingReviewRow(title: "Money today", value: draft.totalMoney.currencyText)
                 Divider()
-                OnboardingReviewRow(title: "Monthly contributions", value: draft.totalMonthlyContributions.currencyText)
+                OnboardingReviewRow(title: "Cash savings plan", value: draft.savingsPlanDescription)
                 Divider()
-                OnboardingReviewRow(title: "Savings goal", value: draft.savingsRate.percentText)
+                OnboardingReviewRow(title: "Investing plan", value: draft.investmentPlanDescription)
+                Divider()
+                OnboardingReviewRow(title: "Emergency fund target", value: draft.emergencyFundTarget.currencyText)
             }
             .onboardingCard()
 
@@ -516,12 +562,22 @@ struct OnboardingView: View {
             settings.mortgageBalance = max(0, draft.mortgageBalance)
             settings.mortgageInterestRate = max(0, draft.mortgageInterestRate)
             settings.mortgageYearsRemaining = max(0, draft.mortgageYearsRemaining)
+            settings.housingDueDay = draft.housingDueDay
             settings.currentSavings = max(0, draft.currentSavings)
             settings.startingCash = max(0, draft.currentSavings)
+            settings.balanceAnchorDate = Calendar.current.startOfDay(for: Date())
+            settings.lastLinkedCashBalance = nil
             settings.investmentBalance = max(0, draft.investmentBalance)
+            settings.startingInvestmentBalance = max(0, draft.investmentBalance)
+            settings.lastLinkedInvestmentBalance = nil
             settings.monthlySavingsContribution = max(0, draft.monthlySavingsContribution)
             settings.monthlyInvestmentContribution = max(0, draft.monthlyInvestmentContribution)
             settings.savingsRate = max(0, draft.savingsRate)
+            settings.investmentRate = max(0, draft.investmentRate)
+            settings.savingsContributionMode = draft.savingsContributionMode
+            settings.investmentContributionMode = draft.investmentContributionMode
+            settings.emergencyMonthlyExpenses = max(0, draft.emergencyMonthlyExpenses)
+            settings.emergencyFundMonths = draft.emergencyFundMonths
         }
         auth.completeOnboarding()
     }
@@ -539,11 +595,17 @@ private struct OnboardingDraft {
     var mortgageBalance: Decimal = 0
     var mortgageInterestRate: Decimal = 0
     var mortgageYearsRemaining: Decimal = 0
+    var housingDueDay: Int = 1
     var currentSavings: Decimal = 0
     var investmentBalance: Decimal = 0
     var monthlySavingsContribution: Decimal = 0
     var monthlyInvestmentContribution: Decimal = 0
     var savingsRate: Decimal = 0
+    var investmentRate: Decimal = 0.05
+    var savingsContributionMode: ContributionPlanMode = .automaticRemainder
+    var investmentContributionMode: ContributionPlanMode = .percentage
+    var emergencyMonthlyExpenses: Decimal = 0
+    var emergencyFundMonths: Int = 3
 
     init() {}
 
@@ -559,11 +621,17 @@ private struct OnboardingDraft {
         mortgageBalance = settings.mortgageBalance
         mortgageInterestRate = settings.mortgageInterestRate
         mortgageYearsRemaining = settings.mortgageYearsRemaining
+        housingDueDay = settings.housingDueDay
         currentSavings = settings.currentSavings
         investmentBalance = settings.investmentBalance
         monthlySavingsContribution = settings.monthlySavingsContribution
         monthlyInvestmentContribution = settings.monthlyInvestmentContribution
         savingsRate = settings.savingsRate
+        investmentRate = settings.investmentRate
+        savingsContributionMode = settings.savingsContributionMode
+        investmentContributionMode = settings.investmentContributionMode
+        emergencyMonthlyExpenses = settings.emergencyMonthlyExpenses
+        emergencyFundMonths = settings.emergencyFundMonths
     }
 
     var monthlyIncome: Decimal {
@@ -576,7 +644,17 @@ private struct OnboardingDraft {
     }
 
     var totalMoney: Decimal { currentSavings + investmentBalance }
-    var totalMonthlyContributions: Decimal { monthlySavingsContribution + monthlyInvestmentContribution }
+    var savingsPlanDescription: String {
+        switch savingsContributionMode {
+        case .automaticRemainder: "What is left"
+        case .percentage: savingsRate.percentText
+        case .fixedAmount: monthlySavingsContribution.currencyText
+        }
+    }
+    var investmentPlanDescription: String {
+        investmentContributionMode == .percentage ? investmentRate.percentText : monthlyInvestmentContribution.currencyText
+    }
+    var emergencyFundTarget: Decimal { emergencyMonthlyExpenses * Decimal(emergencyFundMonths) }
     var housingTitle: String {
         switch housingType {
         case .rent: "Monthly rent"
@@ -677,7 +755,7 @@ private extension View {
     }
 }
 
-private extension Decimal {
+extension Decimal {
     var currencyText: String {
         formatted(.currency(code: currencyCode))
     }

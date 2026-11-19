@@ -27,14 +27,14 @@ A paid membership is not needed to run BudgetBuddy in the iPhone Simulator.
 3. Click the triangular **Run** button or press **Command-R**.
 4. The simulator will open and launch BudgetBuddy.
 
-The first launch includes sample transactions and budgets. Open **Plan → Settings** to enter income and forecast assumptions, use **Budget** to adjust category amounts, and use the **+** button to add a transaction.
+The first launch starts with zero balances and a guided setup. Open **Plan → Settings** to adjust income and forecast assumptions, use **Budget** to set category amounts, and use the **+** button to add a transaction.
 
 ## Project organization
 
 - `BudgetBuddyApp.swift` starts the app and creates the shared data store.
 - `Models/Transaction.swift` contains the financial models and settings.
 - `Stores/TransactionStore.swift` calculates totals and saves local JSON data.
-- `Views/` contains the dashboard, budget, transactions, forecasts, debt planner, settings, and Plaid Sandbox interface.
+- `Views/` contains the dashboard, budget, transactions, forecasts, debt planner, settings, and optional Plaid bank connection.
 
 ## Privacy and storage
 
@@ -44,7 +44,7 @@ The operating security policy and review checklist are in [SECURITY_POLICY.md](S
 
 ## Plaid hosted setup
 
-The `server/` folder contains the multi-user API used by the iPhone app. It verifies Sign in with Apple, encrypts Plaid access tokens with AES-256-GCM, persists Plaid Items and transactions in PostgreSQL, handles transaction webhooks, and supports disconnecting banks and deleting an account.
+The `server/` folder contains the multi-user API used by the iPhone app. It verifies Sign in with Apple, encrypts Plaid access tokens with AES-256-GCM, persists Plaid Items and transactions in PostgreSQL, handles transaction webhooks, and supports disconnecting banks and deleting an account. Live Balance responses are cached per user until midnight in the phone's local time zone to prevent repeated taps from creating extra Plaid Balance calls.
 
 Before requesting Plaid Production access, deploy and test this server using Plaid Sandbox:
 
@@ -63,7 +63,7 @@ npm start
 7. Open **Plan → Settings → Connect bank accounts** and use **Developer Sign In**.
 8. Connect a Plaid test institution and import the desired fake transactions.
 
-For a hosted deployment, `render.yaml` describes the API and PostgreSQL database. Configure the API URL in the app, add an HTTPS Plaid redirect URI and webhook URL, and keep the Plaid secret only in the host's private environment settings.
+For a hosted deployment, configure the Node API and PostgreSQL database in Render. Configure the API URL in the app, add an HTTPS Plaid redirect URI and webhook URL, and keep the Plaid secret only in the host's private environment settings.
 
 ## Prepare a TestFlight build
 

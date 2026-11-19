@@ -42,3 +42,14 @@ CREATE TABLE IF NOT EXISTS consent_records (
     UNIQUE (user_id, consent_type, policy_version)
 );
 CREATE INDEX IF NOT EXISTS consent_records_user_id_idx ON consent_records(user_id);
+
+-- Balance is billed per live Plaid request. Cache one result per user for 24
+-- hours so repeated taps and app launches do not create accidental charges.
+CREATE TABLE IF NOT EXISTS live_balance_cache (
+    user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    summary_json jsonb NOT NULL,
+    retrieved_at timestamptz NOT NULL DEFAULT now(),
+    user_timezone text NOT NULL DEFAULT 'UTC'
+);
+
+ALTER TABLE live_balance_cache ADD COLUMN IF NOT EXISTS user_timezone text NOT NULL DEFAULT 'UTC';
